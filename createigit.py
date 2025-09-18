@@ -956,13 +956,60 @@ system_to_igit_dict = {
     "macos": igit_macos,
 }
 
-editors_to_igit_dict = {
+editor_to_igit_dict = {
     "vsc": igit_vsc,
     "xcode": igit_xcode,
     "jetbrains": igit_jetbrains,
 }
 
-def check_if_section_exist(section_name:str, file_name:str = ".gitignore") -> bool:
+def file_init():
+    with open(".gitignoret", "w") as file:
+        file.write("# =-=-=-=-=-=-=-=-=-= Languages =-=-=-=-=-=-=-=-=-=\n\n")
+        file.write("# =-=-=-=-=-=-=-=-=-= END Languages =-=-=-=-=-=-=-=-=-=\n\n\n\n")
+        file.write("# =-=-=-=-=-=-=-=-=-= System =-=-=-=-=-=-=-=-=-=\n\n")
+        file.write("# =-=-=-=-=-=-=-=-=-= END System =-=-=-=-=-=-=-=-=-=\n\n\n\n")
+        file.write("# =-=-=-=-=-=-=-=-=-= Editors =-=-=-=-=-=-=-=-=-=\n\n")
+        file.write("# =-=-=-=-=-=-=-=-=-= END Editors =-=-=-=-=-=-=-=-=-=\n\n\n\n")
+        file.write("# =-=-=-=-=-=-=-=-=-= Custom User Section =-=-=-=-=-=-=-=-=-=\n\n")
+        file.write("# =-=-=-=-=-=-=-=-=-= END Custom User Section =-=-=-=-=-=-=-=-=-=")
+        file.flush()
+
+def check_argv() -> None:
+    '''
+    Only checking here if argv doesnt not collide with each other and also if the commands exist. Doesnt check the parameters here, they are chedcked in every command handler
+    :return:
+    '''
+    creating_igit_state = False
+    modifying_igit_state = False
+
+    adding_igit_state = False
+    excluding_igit_state = False
+
+    for arg in sys.argv:
+        if arg.startswith("--"):
+            arg = arg.strip('-')
+            if arg == 'exclude_lang' or arg == 'exclude_sys' or arg == 'exclude_editor':
+                creating_igit_state = True
+                excluding_igit_state = True
+            elif arg == "lang" or arg == "sys" or arg == "editor":
+                creating_igit_state = True
+                adding_igit_state = True
+            elif arg == "add_lang" or arg == "add_sys" or arg == "add_editor" or arg == "del_lang" or arg == "del_sys" or arg == "del_editor":
+                modifying_igit_state = True
+            elif arg == "help": pass
+            else:
+                print(f"\033[91m[ERROR] Unknown option: {arg}")
+                sys.exit(1)
+
+    if creating_igit_state and modifying_igit_state:
+        print(f"\033[91m[ERROR] You cannot create and modify file at the same time.")
+        sys.exit(1)
+
+    if adding_igit_state and excluding_igit_state:
+        print(f"\033[91m[ERROR] You cannot exclude from all and then make your own gitignore base. Check manual for help")
+        sys.exit(1)
+
+def check_if_section_exist(section_name:str, file_name:str = ".gitignoret") -> bool:
     with open(file_name, 'r') as file:
         line = file.readline()
         while line:
@@ -971,10 +1018,27 @@ def check_if_section_exist(section_name:str, file_name:str = ".gitignore") -> bo
             line = file.readline()
     return False
 
-def add_section(section_name:str) -> None:
+def check_if_section_supported(section_name:str) -> int:
+    '''
+    Checks if a specific section is in defined in script
+    :param section_name: Name of the section
+    :return: The value that correspond to a type of section like languages, system or editors. 0 correspond to false
+    '''
+
+    if section_name in languages_to_igit_dict.keys():
+        return 1
+    elif section_name in system_to_igit_dict.keys():
+        return 2
+    elif section_name in editor_to_igit_dict.keys():
+        return 3
+    else:
+        return 0
+
+
+def add_section(section_name:str) -> int | None:
     if check_if_section_exist(section_name, ".gitignoret"):
-        print(f"[ERROR] Section {section_name} already exists")
-        sys.exit(1)
+        print(f"\033[91m[ERROR] Section {section_name} already exists")
+        return -1
 
     section_content = ""
     section_type = ""
@@ -983,15 +1047,16 @@ def add_section(section_name:str) -> None:
         section_type = "Languages"
         section_content = languages_to_igit_dict[section_name]
 
-    if section_name in editors_to_igit_dict:
+    if section_name in editor_to_igit_dict:
         section_type = "Editors"
-        section_content = editors_to_igit_dict[section_name]
+        section_content = editor_to_igit_dict[section_name]
 
     if section_name in system_to_igit_dict:
         section_type = "System"
         section_content = system_to_igit_dict[section_name]
 
     os.rename(".gitignoret", ".gitignorebuff")
+
 
     with open(".gitignoret", "x") as gitignore, open(".gitignorebuff", 'r') as gitignorebuff:
         line = gitignorebuff.readline()
@@ -1005,11 +1070,12 @@ def add_section(section_name:str) -> None:
             line = gitignorebuff.readline()
 
     os.remove(".gitignorebuff")
+    print(f"\033[96m[INFO] Section {section_name} created")
 
-def remove_section(section_name:str) -> None:
+def remove_section(section_name:str) -> int | None:
     if not check_if_section_exist(section_name, ".gitignoret"):
-        print(f"[ERROR] Section {section_name} already does not exist")
-        sys.exit(1)
+        print(f"\033[91m[ERROR] Section {section_name} already does not exist")
+        return -1
 
     os.rename(".gitignoret", ".gitignorebuff")
 
@@ -1031,92 +1097,106 @@ def remove_section(section_name:str) -> None:
             line = gitignorebuff.readline()
 
     os.remove(".gitignorebuff")
+    print(f"\033[95m[INFO] Section {section_name} deleted")
 
-# def print_the_state() -> None:
-#     print("Currently in .gitignore")
-#
-#     print("Languages:")
-#     for name,state in languages_state.items():
-#         print(f"\t-{name}: {1 if state else 0}")
-#
-#     print("System:")
-#     for name,state in system_state.items():
-#         print(f"\t-{name}: {1 if state else 0}")
-#
-#     print("Editors:")
-#     for name,state in editors_state.items():
-#         print(f"\t-{name}: {1 if state else 0}")
+def print_the_state() -> None:
+    print("Currently in .gitignore")
+    print("Languages:")
+    print("System:")
+    print("Editors:")
+
+def add_command_handler(arg:str, option_selected:str) -> None:
+    cutted_option = re.sub('add_', '', option_selected)
+    match cutted_option:
+        case 'lang':
+            if arg not in languages_to_igit_dict:
+                print(f"\033[91m[ERROR] Invalid parameter given. No such language gitingore section as {arg}")
+            else:
+                add_section(arg)
+        case 'sys':
+            if arg not in system_to_igit_dict:
+                print(f"\033[91m[ERROR] Invalid parameter given. No such system gitingore section as {arg}")
+            else:
+                add_section(arg)
+        case 'editor':
+            if arg not in editor_to_igit_dict:
+                print(f"\033[91m[ERROR] Invalid parameter given. No such editor gitingore section as {arg}")
+            else:
+                add_section(arg)
+
+def remove_command_handler(arg:str, option_selected:str) -> None:
+    cutted_option = re.sub('del_', '', option_selected)
+    match cutted_option:
+        case 'lang':
+            if arg not in languages_to_igit_dict:
+                print(f"\033[91m[ERROR] Invalid parameter given. No such language gitignore section as {arg}")
+            else:
+                remove_section(arg)
+        case 'sys':
+            if arg not in system_to_igit_dict:
+                print(f"\033[91m[ERROR] Invalid parameter given. No such system gitignore section as {arg}")
+            else:
+                remove_section(arg)
+        case 'editor':
+            if arg not in editor_to_igit_dict:
+                print(f"\033[91m[ERROR] Invalid parameter given. No such editor gitignore section as {arg}")
+            else:
+                remove_section(arg)
+
+def exclude_command_handler(arg) -> None: pass
+
+
+
+def base_command_handler(arg:str) -> None:
+    if check_if_section_supported(arg):
+       add_section(arg)
+    else:
+        print(f"\033[91m[ERROR] Invalid parameter given. No such gitignore section as {arg}")
+
 
 if __name__ == "__main__":
-    it = iter(sys.argv[1:])
-
-    # Option excluding states
-    creating_igit_state = False
-    modifying_igit_state = False
+    file_init()
+    check_argv()
 
     # Option such as: --exc triggers the state, then in option_selected, the option that was recently choosen is being holds
     option_state = False
     option_selected = ""
 
-    for arg in it:
+    excluded_sections = []
+
+    for arg in sys.argv[1:]:
         # parsing the arguments
         if arg.startswith("--"):
             option_state = True
             option_selected = arg.strip('-')
             continue
 
-        if modifying_igit_state and creating_igit_state:
-            print("[ERROR] You cannot modify and create gitignore at the same time")
-
-        # adding option
+        # adding option handler
         if option_state and re.match('add_*', option_selected):
-            modifying_igit_state = True
-
-            if not(option_selected == "add_lang" or option_selected == "add_editor" or option_selected == "add_system"):
-                print(f"[ERROR] Invalid option given. No such option as {option_selected}")
+            add_command_handler(arg, option_selected)
+        # remove option handler
+        elif option_state and re.match('del_*', option_selected):
+            remove_command_handler(arg, option_selected)
+        # excluding from whole base handler
+        elif option_state and re.match('exclude_*', option_selected):
+            if check_if_section_supported(arg):
+                excluded_sections.append(arg)
             else:
-                cutted_option = re.sub('add_', '', option_selected)
-                match cutted_option:
-                    case 'lang':
-                        if arg not in languages_to_igit_dict:
-                            print(f"[ERROR] Invalid parameter given. No such language gitingore section as {arg}")
-                        else:
-                            add_section(arg)
-                    case 'sys':
-                        if arg not in system_to_igit_dict:
-                            print(f"[ERROR] Invalid parameter given. No such system gitingore section as {arg}")
-                        else:
-                            add_section(arg)
-                    case 'editor':
-                        if arg not in editors_to_igit_dict:
-                            print(f"[ERROR] Invalid parameter given. No such editor gitingore section as {arg}")
-                        else:
-                            add_section(arg)
-                    case _:
-                        print(f'[ERROR] Bad option given. No such option as {option_selected}')
+                print(f"\033[91m[ERROR] Invalid parameter given. No such gitingore section as {arg}")
+        # base creating handler
+        elif option_state and (option_selected == 'lang' or option_selected == 'sys' or option_selected == 'editor'):
+            base_command_handler(arg)
 
 
+    if re.match('exclude_*', option_selected) or len(sys.argv) == 1:
+        for section in languages_to_igit_dict.keys():
+            if section not in excluded_sections:
+                add_command_handler(section, option_selected)
 
+        for section in system_to_igit_dict.keys():
+            if section not in excluded_sections:
+                add_command_handler(section, option_selected)
 
-    if len(sys.argv) == 1:
-        with open(".gitignoret", "w") as file:
-            file.write("# =-=-=-=-=-=-=-=-=-= Languages =-=-=-=-=-=-=-=-=-=\n\n")
-            file.write("# =-=-=-=-=-=-=-=-=-= END Languages =-=-=-=-=-=-=-=-=-=\n\n\n\n")
-            file.write("# =-=-=-=-=-=-=-=-=-= System =-=-=-=-=-=-=-=-=-=\n\n")
-            file.write("# =-=-=-=-=-=-=-=-=-= END System =-=-=-=-=-=-=-=-=-=\n\n\n\n")
-            file.write("# =-=-=-=-=-=-=-=-=-= Editors =-=-=-=-=-=-=-=-=-=\n\n")
-            file.write("# =-=-=-=-=-=-=-=-=-= END Editors =-=-=-=-=-=-=-=-=-=\n\n\n\n")
-            file.write("# =-=-=-=-=-=-=-=-=-= Custom User Section =-=-=-=-=-=-=-=-=-=\n\n")
-            file.write("# =-=-=-=-=-=-=-=-=-= END Custom User Section =-=-=-=-=-=-=-=-=-=")
-            file.flush()
-        #
-        # for lang_name in languages_to_igit_dict.keys():
-        #     add_section(lang_name)
-        #
-        # for system_name in system_to_igit_dict.keys():
-        #     add_section(system_name)
-        #
-        # for editor_name in editors_to_igit_dict.keys():
-        #     add_section(editor_name)
-        #
-        # remove_section("java")
+        for section in editor_to_igit_dict.keys():
+            if section not in excluded_sections:
+                add_command_handler(section, option_selected)
