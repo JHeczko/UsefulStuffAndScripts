@@ -1158,6 +1158,9 @@ if __name__ == "__main__":
     file_init()
     check_argv()
 
+    # if no specific options are given then everything is put inside .gitignore file
+    base_state = True
+
     # Option such as: --exc triggers the state, then in option_selected, the option that was recently choosen is being holds
     option_state = False
     option_selected = ""
@@ -1173,9 +1176,11 @@ if __name__ == "__main__":
 
         # adding option handler
         if option_state and re.match('add_*', option_selected):
+            base_state = False
             add_command_handler(arg, option_selected)
         # remove option handler
         elif option_state and re.match('del_*', option_selected):
+            base_state = False
             remove_command_handler(arg, option_selected)
         # excluding from whole base handler
         elif option_state and re.match('exclude_*', option_selected):
@@ -1185,18 +1190,21 @@ if __name__ == "__main__":
                 print(f"\033[91m[ERROR] Invalid parameter given. No such gitingore section as {arg}")
         # base creating handler
         elif option_state and (option_selected == 'lang' or option_selected == 'sys' or option_selected == 'editor'):
+            base_state = False
             base_command_handler(arg)
 
 
-    if re.match('exclude_*', option_selected) or len(sys.argv) == 1:
-        for section in languages_to_igit_dict.keys():
-            if section not in excluded_sections:
-                add_command_handler(section, option_selected)
+    # only fired when exclude option or no option given
+    if base_state:
+        print("cos")
+        for section_name in languages_to_igit_dict.keys():
+            if section_name not in excluded_sections:
+                add_section(section_name)
 
-        for section in system_to_igit_dict.keys():
-            if section not in excluded_sections:
-                add_command_handler(section, option_selected)
+        for section_name in system_to_igit_dict.keys():
+            if section_name not in excluded_sections:
+                add_section(section_name)
 
-        for section in editor_to_igit_dict.keys():
-            if section not in excluded_sections:
-                add_command_handler(section, option_selected)
+        for section_name in editor_to_igit_dict.keys():
+            if section_name not in excluded_sections:
+                add_section(section_name)
