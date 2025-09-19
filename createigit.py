@@ -1049,7 +1049,7 @@ def check_if_section_supported(section_name:str) -> int:
     else:
         return 0
 
-def add_section(section_name:str) -> int | None:
+def add_section(section_name:str) -> int:
     if check_if_section_exist(section_name, ".gitignore"):
         print(f"\033[38;5;208m[WARNING] Section {section_name} already exists")
         return -1
@@ -1086,7 +1086,7 @@ def add_section(section_name:str) -> int | None:
     os.remove(".gitignorebuff")
     print(f"\033[96m[INFO] Section {section_name} created")
 
-def remove_section(section_name:str) -> int | None:
+def remove_section(section_name:str) -> int:
     if not check_if_section_exist(section_name, ".gitignore"):
         print(f"\033[38;5;208m[WARNING] Section {section_name} already does not exist")
         return -1
@@ -1125,43 +1125,53 @@ def print_the_state() -> None:
     for section in editor_to_igit_dict.keys():
         print(f"\t-{section}: {1 if check_if_section_exist(section) else 0}")
 
-def add_command_handler(arg:str, option_selected:str) -> None:
+def add_command_handler(arg: str, option_selected: str) -> None:
     cutted_option = re.sub('add_', '', option_selected)
-    match cutted_option:
-        case 'lang':
-            if arg not in languages_to_igit_dict:
-                print(f"\033[38;5;208m[WARNING] Invalid parameter given. No such language gitingore section as {arg}")
-            else:
-                add_section(arg)
-        case 'sys':
-            if arg not in system_to_igit_dict:
-                print(f"\033[38;5;208m[WARNING] Invalid parameter given. No such system gitingore section as {arg}")
-            else:
-                add_section(arg)
-        case 'editor':
-            if arg not in editor_to_igit_dict:
-                print(f"\033[38;5;208m[WARNING] Invalid parameter given. No such editor gitingore section as {arg}")
-            else:
-                add_section(arg)
 
-def remove_command_handler(arg:str, option_selected:str) -> None:
+    if cutted_option == 'lang':
+        if arg not in languages_to_igit_dict:
+            print(f"\033[38;5;208m[WARNING] Invalid parameter given. No such language gitingore section as {arg}")
+        else:
+            add_section(arg)
+
+    elif cutted_option == 'sys':
+        if arg not in system_to_igit_dict:
+            print(f"\033[38;5;208m[WARNING] Invalid parameter given. No such system gitingore section as {arg}")
+        else:
+            add_section(arg)
+
+    elif cutted_option == 'editor':
+        if arg not in editor_to_igit_dict:
+            print(f"\033[38;5;208m[WARNING] Invalid parameter given. No such editor gitingore section as {arg}")
+        else:
+            add_section(arg)
+
+    else:
+        print(f"\033[38;5;208m[WARNING] Unknown option selected: {cutted_option}")
+
+def remove_command_handler(arg: str, option_selected: str) -> None:
     cutted_option = re.sub('del_', '', option_selected)
-    match cutted_option:
-        case 'lang':
-            if arg not in languages_to_igit_dict:
-                print(f"\033[38;5;208m[WARNING] Invalid parameter given. No such language gitignore section as {arg}")
-            else:
-                remove_section(arg)
-        case 'sys':
-            if arg not in system_to_igit_dict:
-                print(f"\033[38;5;208m[WARNING] Invalid parameter given. No such system gitignore section as {arg}")
-            else:
-                remove_section(arg)
-        case 'editor':
-            if arg not in editor_to_igit_dict:
-                print(f"\033[38;5;208m[WARNING] Invalid parameter given. No such editor gitignore section as {arg}")
-            else:
-                remove_section(arg)
+
+    if cutted_option == 'lang':
+        if arg not in languages_to_igit_dict:
+            print(f"\033[38;5;208m[WARNING] Invalid parameter given. No such language gitignore section as {arg}")
+        else:
+            remove_section(arg)
+
+    elif cutted_option == 'sys':
+        if arg not in system_to_igit_dict:
+            print(f"\033[38;5;208m[WARNING] Invalid parameter given. No such system gitignore section as {arg}")
+        else:
+            remove_section(arg)
+
+    elif cutted_option == 'editor':
+        if arg not in editor_to_igit_dict:
+            print(f"\033[38;5;208m[WARNING] Invalid parameter given. No such editor gitignore section as {arg}")
+        else:
+            remove_section(arg)
+
+    else:
+        print(f"\033[38;5;208m[WARNING] Unknown option selected: {cutted_option}")
 
 def base_command_handler(arg:str) -> None:
     if check_if_section_supported(arg):
