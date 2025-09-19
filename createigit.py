@@ -852,6 +852,7 @@ igit_vsc = '''.vscode/*
 !.vscode/extensions.json
 !.vscode/*.code-snippets
 !*.code-workspace
+.vscode/
 
 # Built VS Code Extensions
 *.vsix'''
@@ -859,11 +860,11 @@ igit_vsc = '''.vscode/*
 igit_xcode = '''## User settings
 xcuserdata/'''
 
-igit_jetbrains = '''
-# Covers JetBrains IDEs
+igit_jetbrains = '''# Covers JetBrains IDEs
 # Reference: https://intellij-support.jetbrains.com/hc/en-us/articles/206544839
 
 # User-specific stuff
+.idea/
 .idea/**/workspace.xml
 .idea/**/tasks.xml
 .idea/**/usage.statistics.xml
@@ -992,8 +993,8 @@ def check_argv() -> None:
         if arg.startswith("--"):
             arg = arg.strip('-')
 
-            if (arg == 'help' or arg == 'h' or arg == 's' or arg == 'state') and len(sys.argv) != 2:
-                print(f"\033[91m[ERROR] Please use --help or --state without other options")
+            if (arg == 'help' or arg == 'h' or arg == 's' or arg == 'state' or arg == 'list') and len(sys.argv) != 2:
+                print(f"\033[91m[ERROR] Please use --help or --state or --list without other options")
                 sys.exit(1)
 
             if arg == 'exclude_lang' or arg == 'exclude_sys' or arg == 'exclude_editor':
@@ -1173,6 +1174,7 @@ def help_command_handler():
     There is a short manual of how to use a specific command:
     \t --help, -h: a manual page that you see now
     \t --state, -s: a state of existing .gitignore file
+    \t --list: prints all available .gitignore sections
     \t --lang, --sys, --editor: creating .gitignore file from scratch with specified sections
     \t --exclude_lang, --exclude_sys, --exclude_editor: creating a file with all sections except those specified by those options
     \t --add_lang, --add_sys, --add_editor: adding to an existing .gitignore file a specified section
@@ -1192,7 +1194,19 @@ def help_command_handler():
     for editor in editor_to_igit_dict.keys():
         print(f"\t-{editor}")
 
-    print("The important thing is, if .gitignore already exist, you cannot execute commands such as: --lang, --sys, --editor, --exclude_lang, --exclude_sys, --exclude_editor, they only works on freshly created filed. If you want to modify the existing file use: --add_lang, --add_sys, --add_editor, --del_lang, --del_sys, --del_editor")
+    print("(you have to write them as they are)\n\nThe important thing is, if .gitignore already exist, you cannot execute commands such as: --lang, --sys, --editor, --exclude_lang, --exclude_sys, --exclude_editor, they only works on freshly created filed. If you want to modify the existing file use: --add_lang, --add_sys, --add_editor, --del_lang, --del_sys, --del_editor")
+
+def list_command_handler():
+    print(f"List of available sections: ", sep=' ')
+
+    for section in languages_to_igit_dict.keys():
+        print(section, sep=', ')
+
+    for section in system_to_igit_dict.keys():
+        print(section, sep=', ')
+
+    for section in editor_to_igit_dict.keys():
+        print(section, sep=', ')
 
 if __name__ == "__main__":
     check_argv()
@@ -1217,6 +1231,10 @@ if __name__ == "__main__":
         # handler for state command
         if arg == "--state" or arg == "-s":
             print_the_state()
+            sys.exit(0)
+
+        if arg == '--list':
+            list_command_handler()
             sys.exit(0)
 
         # parsing the arguments
