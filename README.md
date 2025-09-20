@@ -13,22 +13,22 @@ There is a short manual of how to use a specific command:
 - `--add_lang`, `--add_sys`, `--add_editor`: adding to an existing .gitignore file a specified section
 - `--del_lang`, `--del_sys`, `--del_editor`: deleting from an existing .gitignore file a specified section 
     
-The sections that are currectly supported are:
+The sections that are currently supported are:
 **Languages:**
-- "cpp"
-- "c"
-- "go" 
-- "gradle" 
-- "java"
-- "langchain" 
-- "maven"
-- "node" 
-- "python" 
-- "qt"
-- "scala" 
-- "swift" 
-- "tex"
-- "terraform" 
+- cpp
+- c
+- go 
+- gradle 
+- java
+- langchain 
+- maven
+- node
+- python 
+- qt
+- scala 
+- swift 
+- tex
+- terraform 
 
 **Systems:**
 - linux

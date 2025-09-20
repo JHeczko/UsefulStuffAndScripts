@@ -1011,7 +1011,7 @@ def check_argv() -> None:
                     sys.exit(0)
             elif arg == "add_lang" or arg == "add_sys" or arg == "add_editor" or arg == "del_lang" or arg == "del_sys" or arg == "del_editor":
                 modifying_igit_state = True
-            elif arg == "help" or arg == 'state' or arg == 'h' or arg == 's': pass
+            elif arg == "help" or arg == 'state' or arg == 'h' or arg == 's' or arg == 'list': pass
             else:
                 print(f"\033[91m[ERROR] Unknown option: {arg}")
                 sys.exit(1)
@@ -1207,16 +1207,21 @@ def help_command_handler():
     print("(you have to write them as they are)\n\nThe important thing is, if .gitignore already exist, you cannot execute commands such as: --lang, --sys, --editor, --exclude_lang, --exclude_sys, --exclude_editor, they only works on freshly created filed. If you want to modify the existing file use: --add_lang, --add_sys, --add_editor, --del_lang, --del_sys, --del_editor")
 
 def list_command_handler():
-    print(f"List of available sections: ", sep=' ')
-
+    print("Langs: ", end='')
     for section in languages_to_igit_dict.keys():
-        print(section, sep=', ')
+        print(section, end=' | ')
+    print()
 
+    print("Systems: ", end='')
     for section in system_to_igit_dict.keys():
-        print(section, sep=', ')
+        print(section, end=' | ')
+    print()
 
+
+    print("Editors: ", end='')
     for section in editor_to_igit_dict.keys():
-        print(section, sep=', ')
+        print(section, end=' | ')
+    print()
 
 if __name__ == "__main__":
     check_argv()
