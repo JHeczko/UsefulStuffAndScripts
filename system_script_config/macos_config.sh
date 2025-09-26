@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+# check if running as root
+if [ "$EUID" -ne 0 ]; then
+  echo "❌ Please run this script with sudo or as root."
+  exit 1
+fi
+
 LINE_MOUSE="defaults write -g com.apple.mouse.scaling -integer -1"
 LINE_ALIAS_LL='alias ll="ls -al"'
 PATH_BIN_ALIAS='export PATH=\"$BIN_DIR:\$PATH\"'
@@ -30,14 +36,17 @@ rm -rf "$REPO_DIR"
 # ======= add lines to .zprofile =======
 if ! grep -Fxq "$PATH_BIN_ALIAS" "$FILE"; then
     echo "$PATH_BIN_ALIAS" >> "$FILE"
+    echo "✅ Added PATH line to $FILE"
 fi
 
 if ! grep -Fxq "$LINE_MOUSE" "$FILE"; then
     echo "$LINE_MOUSE" >> "$FILE"
+    echo "✅ Added mouse scaling line to $FILE"
 fi
 
 if ! grep -Fxq "$LINE_ALIAS_LL" "$FILE"; then
     echo "$LINE_MOUSE" >> "$FILE"
+    echo "✅ Added alias ll line to $FILE"
 fi
 
 eval "$LINE_MOUSE"

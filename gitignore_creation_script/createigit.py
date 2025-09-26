@@ -965,7 +965,7 @@ editor_to_igit_dict = {
 
 def file_init():
     try:
-        file = open("../.gitignore", "x")
+        file = open("./.gitignore", "x")
         file.write("# =-=-=-=-=-=-=-=-=-= Languages =-=-=-=-=-=-=-=-=-=\n\n")
         file.write("# =-=-=-=-=-=-=-=-=-= END Languages =-=-=-=-=-=-=-=-=-=\n\n\n\n")
         file.write("# =-=-=-=-=-=-=-=-=-= System =-=-=-=-=-=-=-=-=-=\n\n")
@@ -1000,13 +1000,13 @@ def check_argv() -> None:
             if arg == 'exclude_lang' or arg == 'exclude_sys' or arg == 'exclude_editor':
                 creating_igit_state = True
                 excluding_igit_state = True
-                if os.path.exists("../.gitignore"):
+                if os.path.exists("./.gitignore"):
                     print(f"\033[91m[ERROR] Please delete the .gitignore file before creating new one")
                     sys.exit(0)
             elif arg == "lang" or arg == "sys" or arg == "editor":
                 creating_igit_state = True
                 adding_igit_state = True
-                if os.path.exists("../.gitignore"):
+                if os.path.exists("./.gitignore"):
                     print(f"\033[91m[ERROR] Please delete the .gitignore file before creating new one")
                     sys.exit(0)
             elif arg == "add_lang" or arg == "add_sys" or arg == "add_editor" or arg == "del_lang" or arg == "del_sys" or arg == "del_editor":
@@ -1050,7 +1050,7 @@ def check_if_section_supported(section_name:str) -> int:
         return 0
 
 def add_section(section_name:str) -> int:
-    if check_if_section_exist(section_name, "../.gitignore"):
+    if check_if_section_exist(section_name, "./.gitignore"):
         print(f"\033[38;5;208m[WARNING] Section {section_name} already exists")
         return -1
 
@@ -1069,10 +1069,10 @@ def add_section(section_name:str) -> int:
         section_type = "System"
         section_content = system_to_igit_dict[section_name]
 
-    os.rename("../.gitignore", ".gitignorebuff")
+    os.rename("./.gitignore", ".gitignorebuff")
 
 
-    with open("../.gitignore", "x") as gitignore, open(".gitignorebuff", 'r') as gitignorebuff:
+    with open("./.gitignore", "x") as gitignore, open(".gitignorebuff", 'r') as gitignorebuff:
         line = gitignorebuff.readline()
 
         while line:
@@ -1087,13 +1087,13 @@ def add_section(section_name:str) -> int:
     print(f"\033[96m[INFO] Section {section_name} created")
 
 def remove_section(section_name:str) -> int:
-    if not check_if_section_exist(section_name, "../.gitignore"):
+    if not check_if_section_exist(section_name, "./.gitignore"):
         print(f"\033[38;5;208m[WARNING] Section {section_name} already does not exist")
         return -1
 
-    os.rename("../.gitignore", ".gitignorebuff")
+    os.rename("./.gitignore", ".gitignorebuff")
 
-    with open("../.gitignore", "x") as gitignore, open(".gitignorebuff", 'r') as gitignorebuff:
+    with open("./.gitignore", "x") as gitignore, open(".gitignorebuff", 'r') as gitignorebuff:
         line = gitignorebuff.readline()
         section_flag = False
 

@@ -1,7 +1,7 @@
 # UsefullStuff
 It is a set of scripts and other stuff that i mostly use to automate tasks that can be automated, below there a list of those scirpt with the description.
 
-## `createigi.py`
+## `gitignore_creation_script` (`createigit.py`)
 Script for creating and managing the .gitignore files, with sections that you can add, remove, etc. You are able to control the state of the file, create new .gitignore files that can be customized to your needs
 
 There is a short manual of how to use a specific command:
@@ -43,3 +43,14 @@ The sections that are currently supported are:
 (you have to write them as they are)
 
 The important thing is, if .gitignore already exist, you cannot execute commands such as: --lang, --sys, --editor, --exclude_lang, --exclude_sys, --exclude_editor, they only works on freshly created filed. If you want to modify the existing file use: --add_lang, --add_sys, --add_editor, --del_lang, --del_sys, --del_editor
+
+## `system_script_config`
+### `macos_config.sh`
+Adding line to `.zprofile`:
+- no mouse acceleration
+- `ll` alias is equivalent to `ls -al`
+- creating `~/.bin` folder for my personal scripts
+- adding `~/.bin` to `$PATH`
+
+Adding those script to system:
+1. Adding `createigit` script
