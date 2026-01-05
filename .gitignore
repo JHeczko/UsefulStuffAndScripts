@@ -984,5 +984,6 @@ http-client.private.env.json
 
 
 # =-=-=-=-=-=-=-=-=-= Custom User Section =-=-=-=-=-=-=-=-=-=
-
+config.json
+aicode_conf
 # =-=-=-=-=-=-=-=-=-= END Custom User Section =-=-=-=-=-=-=-=-=-=
