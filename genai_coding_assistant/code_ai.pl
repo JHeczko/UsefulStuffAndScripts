@@ -4,8 +4,23 @@
 use HTTP::Tiny;
 use JSON qw(encode_json decode_json);
 
+# ============= GLOBAL VARS =============
+# Główna baza modeli z podziałem na dostawców
+my %models_db = (
+    1 => { name => "gemini-3-flash",        provider => "google" },
+    2 => { name => "gemini-2.5-flash",      provider => "google" },
+    3 => { name => "gemini-2.5-flash-lite", provider => "google" },
+    4 => { name => "gemma-3-27b",           provider => "google" },
+);
+
 # ============= PRINT's =============
+sub clear_screen{
+    print "\033[2J";    #clear the screen
+    print "\033[0;0H"; #jump to 0,0
+}
+
 sub show_menu {
+    clear_screen();
     print "\n===============================\n";
     print "   GenAI Developer Assistant\n";
     print "===============================\n";
@@ -20,17 +35,25 @@ sub show_menu {
 };
 
 sub show_option_menu {
+    clear_screen();
     print "\n----------------------------\n";
     print "   Setting menu\n";
     print "----------------------------\n";
     print "1) Check API KEY's\n";
-    print "2) Select model\n";
+    print "2) Set API KEY's\n";
+    print "3) Select model\n";
+    print "4) Show current model\n";
+
     
     print "\n";
     print "0) Exit\n";
     print "Choose an option: ";
 }
 
+sub type_to_continue{
+    print "\nType in anything to continue...";
+    my $contine = <STDIN>;
+}
 
 # ============= API's =============
 sub gemini_prompt {
@@ -110,8 +133,8 @@ sub ask_question {
     my $response = gemini_prompt($prompt_text, $model, 1);
     print $response;
 
-    print "\n=========END============\nType in anything to continue...";
-    my $contine = <STDIN>;
+    print "\n=========END============";
+    type_to_continue();
 }
 
 # ============= SOURCE FILE ANALIZER HANDLER =============
@@ -138,23 +161,91 @@ sub read_config (){
     return decode_json($file_context);
 }
 
-sub select_model{
-    while 
+sub save_config {
+    my ($config_data) = @_;
+    my $config_path = "./aicode_conf/config.json";
+
+    my $json_text = JSON->new->pretty->encode($config_data);
+
+    open(my $FILE, '>', $config_path) or die "Nie można otworzyć pliku do zapisu: $!";
+    print $FILE $json_text;
+    close($FILE);
+}
+
+sub show_keys {
+    my $gemini_api = $ENV{GEMINI_API_KEY} or "";    
+    my $openai_api = $ENV{OPENAI_API_KEY} or "";
+    print("Please remember to store them as ENVIRONMENT VARIABLES:\n\t-GEMINI API KEY: $gemini_api\n\t-OPENAI API KEY: $openai_api\n");  
+    type_to_continue();
+} 
+
+sub set_keys {
+
+}
+
+sub set_model {
+    print "=== DOSTĘPNE MODELE ===\n";
+    
+    foreach my $id (sort { $a <=> $b } keys %models_db) {
+        my $m = $models_db{$id};
+        printf("%d) %-25s [%s]\n", $id, $m->{name}, uc($m->{provider}));
+    }
+    
+    print "\nWybierz numer modelu: ";
+    my $choice = <STDIN>;
+    chomp($choice);
+
+    if (exists $models_db{$choice}) {
+        my $selected = $models_db{$choice};
+        
+        print "Wybrano: $selected->{name} ($selected->{provider})\n";
+        type_to_continue();
+        if ($selected->{provider} eq "google") {
+            my $type="google";
+        } elsif ($selected->{provider} eq "openai") {
+            my $type="google";
+        }
+
+
+        my $config = read_config();
+        $config->{model} = $selected->{name};
+        $config->{type} = $selected->{provider};
+        save_config($config);
+
+    } else {
+        print "Błędny wybór!\n";
+        type_to_continue();
+    }
+}
+
+sub curr_model{
+    my $config = read_config();
+    print("====== [CURRENT MODEL] ======\nCurrent model is $config->{model}, from $config->{type}.\n");
+    type_to_continue();
+    show_option_menu();
 }
 
 sub settings_menu{
-    show_option_menu();
-    chomp(my $option = <STDIN>);
+    my %actions_menu = (
+    1 => \&show_keys,
+    2 => \&set_keys,
+    3 => \&set_model,
+    4 => \&curr_model,
+    );
 
-    while(1){
-        if($option eq 1){
-            my $gemini_api = $ENV{GEMINI_API_KEY} or "";
-            my $openai_api = $ENV{OPENAI_API_KEY} or "";
-            print("Please remember to store them as ENVIRONMENT VARIABLES:\n\t-GEMINI API KEY: $gemini_api\n\t-OPENAI API KEY: $openai_api\n");
-        }elsif($option eq 2){
-        }elsif($option eq 0){
-            return;
-        };
+    my $option;
+    
+    show_option_menu();
+    chomp($option = <STDIN>);
+    
+    while($option != 0){
+        if (exists $actions_menu{$option}) {
+            $actions_menu{$option}->();
+        } else {
+            print "Invalid option. Try again.\n";
+            type_to_continue();
+        }
+
         show_option_menu();
         chomp($option = <STDIN>);
     }
@@ -182,5 +273,6 @@ while (1) {
         $actions{$choice}->();
     } else {
         print "Invalid option. Try again.\n";
+        type_to_continue();
     }
 }
