@@ -1,8 +1,10 @@
 #!/usr/bin/perl
 
-
+use warnings;
+use strict;
 use HTTP::Tiny;
 use JSON qw(encode_json decode_json);
+use open qw(:std :utf8);
 
 # ============= GLOBAL VARS =============
 # Główna baza modeli z podziałem na dostawców
@@ -10,7 +12,11 @@ my %models_db = (
     1 => { name => "gemini-3-flash",        provider => "google" },
     2 => { name => "gemini-2.5-flash",      provider => "google" },
     3 => { name => "gemini-2.5-flash-lite", provider => "google" },
-    4 => { name => "gemma-3-27b",           provider => "google" },
+    4 => { name => "gemma-3-27b-it",           provider => "google" },
+    5 => { name => "gemma-3-12b-it",           provider => "google" },
+    6 => { name => "gemma-3-4b-it",           provider => "google" },
+    7 => { name => "gemma-3-2b-it",           provider => "google" },
+    8 => { name => "gemma-3-1b-it",           provider => "google" },
 );
 
 # ============= PRINT's =============
@@ -71,24 +77,20 @@ sub gemini_prompt {
         verify_SSL => 1,
     );
 
-    my $payload = {
-        system_instruction => {
-            parts => [
-                {
-                    text => $system_info
-                }
-            ]
-        },
-        contents => [
-            {
-                parts => [
-                    {
-                        text => $prompt
-                    }
-                ]
-            }
-        ]
-    };
+    my $payload;
+    
+    if ($model =~ /gemma/i) {
+        $payload = {
+            contents => [{
+                parts => [{ text => "Instruction: $system_info\nQuestion: $prompt" }]
+            }]
+        };
+    } else {
+        $payload = {
+            system_instruction => { parts => [{ text => $system_info }] },
+            contents => [{ parts => [{ text => $prompt }] }]
+        };
+    }
 
     my $res = $ua->request(
         'POST',
@@ -113,7 +115,8 @@ sub gemini_prompt {
             }
         };
 
-        die "=======ERROR========\nGemini API error ($res->{status}): $msg\n";
+        print "=======ERROR========\nGemini API error ($res->{status}): $msg\n";
+        return "";
     }
 
     my $data = decode_json($res->{content});
@@ -127,12 +130,11 @@ sub gemini_prompt {
 sub ask_question {
     print "Ask a question: ";
     my $prompt_text = <STDIN>;
-    my $prompt_text = $prompt_text . "\n
-    (NOTE: Please make the answear terminal friendly(cuz answear will be shown in terminal, so maybe no .md format). And also please no intro, go to the answear immediently.)";
-    my $model = "gemini-2.5-flash";
-    my $response = gemini_prompt($prompt_text, $model, 1);
+    my $prompt_text = $prompt_text . "\n(NOTE: Please make the answear terminal friendly(cuz answear will be shown in terminal, so no .md format). And also please no intro, go to the answear immediently.)";
+    my $config = read_config();
+    my $model = $config->{model};
+    my $response = gemini_prompt($prompt_text, $model, 0);
     print $response;
-
     print "\n=========END============";
     type_to_continue();
 }
@@ -180,11 +182,16 @@ sub show_keys {
 } 
 
 sub set_keys {
+    my $key = <STDIN>;
+    chomp($key);
 
+    my $config = read_config();
+    $config->{"gemini-api-key"} = $key;
+    save_config($config);
 }
 
 sub set_model {
-    print "=== DOSTĘPNE MODELE ===\n";
+    print "=== DOSTEPNE MODELE ===\n";
     
     foreach my $id (sort { $a <=> $b } keys %models_db) {
         my $m = $models_db{$id};
@@ -257,6 +264,8 @@ sub exit_program {
     exit 0;
 }
 
+
+# ============= MAIN =============
 my %actions = (
     1 => \&ask_question,
     2 => \&analyze_file,
