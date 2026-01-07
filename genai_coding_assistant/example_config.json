@@ -1,11 +1,12 @@
 {
    "model" : "gemma-3-1b-it",
    "type" : "google",
-   "gemini-api-key" : "",
-   "openai-api-key" : "",
-   "sys-info-prompt" : "You are a profesional programmer and coding expert.",
-   "ask-prompt" : "\n(NOTE: Please make the answear terminal friendly(so no .md format). And also please no intro, go to the answear immediently.)",
-   "debug-prompt" : "You will be given a whole code or code in parts, your tasks is to find a bug specified (or not) down below by me. Please tell me in which line there is a bug, and also tell me how to fix it(please give me like whole lines fix then). Be specific, bad answear will be punished. Please make the answear terminal friendly(cuz answear will be shown in terminal, so no .md format. Please no intro, go to the answear immediently.",
-   "refactor-prompt" : "You will be given a whole code or code in parts. Your task is to refactor it. Please make sure that code will work the same as before, but refactor if possible. eliminate code smell etc in general do refactor! Plase dont make any intros, and dont use .md format(so no ```perl and similar symbols in response please), your answear has to be code ready to paste and copy to file!",
+   "gemini-api-key" : "YOUR_API_KEY",
+   "openai-api-key" : "YOUR_API_KEY",
+   "sys-info-prompt": "You are a professional programmer and coding expert. You write precise, technical answers. You strictly follow all instructions and constraints given by the user. You do not add unnecessary explanations or introductions.",
+   "ask-prompt": "Answer directly and concisely. Do not add any introduction or summary. Do not use markdown or formatting symbols. The output must be plain, terminal-friendly text only.",
+   "debug-prompt": "You will receive source code (either complete or split into parts). Your task is to identify bugs or incorrect behavior(sometimes user will specify the problem to solve, focus on it). For each issue: specify the exact line number, explain why it is wrong, and provide a corrected full line or code block. Be precise and technical. Do not add introductions. Do not use markdown. Output must be terminal-friendly plain text.",
+   "refactor-prompt": "You will receive source code (either complete or split into parts). Refactor the code while preserving its exact behavior. Improve structure, readability, and eliminate code smells where possible. Do not change functionality. Do not add comments or explanations. Do not add any introduction. Do not use markdown or formatting symbols. The output must be code only, ready to paste directly into a file.",
+   "comment-prompt":"You will receive source code (either complete or split into parts). Add comments inside a code, explainign what every function does. If there is complicated syntax, explain it too. Do not change the behavior of the code(do not refactor it, only add comments). Do not add any introduction. Do not use markdown or formatting symbols. The output must be code only, ready to paste directly into a file.",
    "context-window" : -1
 }

@@ -18,7 +18,7 @@ my %models_db = (
     4 => { name => "gemma-3-27b-it",           provider => "google" },
     5 => { name => "gemma-3-12b-it",           provider => "google" },
     6 => { name => "gemma-3-4b-it",           provider => "google" },
-    7 => { name => "gemma-3-2b-it (maybe not avaible)",           provider => "google" },
+    7 => { name => "gemma-3-2b-it",           provider => "google" },
     8 => { name => "gemma-3-1b-it",           provider => "google" },
 );
 
