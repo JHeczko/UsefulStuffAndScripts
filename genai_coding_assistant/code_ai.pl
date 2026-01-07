@@ -7,8 +7,8 @@ use JSON qw(encode_json decode_json);
 use Tie::IxHash;
 use open qw(:std :utf8);
 use Cwd qw(getcwd abs_path);
-use File::Basename;
-
+use File::Basename qw(dirname basename);
+use File::Spec;
 
 # ============= GLOBAL VARS =============
 my %models_db = (
@@ -23,7 +23,10 @@ my %models_db = (
 );
 
 
-# ============= HELP FUNCS =============
+
+# ============================================
+# FUNKCJE POMOCNICZE (HELPERY)
+# ============================================
 sub append_history{
 
 }
@@ -49,7 +52,6 @@ sub read_config {
     return \%ordered;
 }
 
-
 # zapisanie pliku konfiguracyjnego
 sub save_config {
     my ($config_data) = @_;
@@ -63,8 +65,6 @@ sub save_config {
     print $fh $json_text;
     close $fh;
 }
-
-
 
 # Interaktywna nawigacja po katalogach
 sub browse_files {
@@ -332,7 +332,7 @@ sub debug_file {
     foreach my $content_part (@batches) {
         print "\n--- Przetwarzanie czesci $batch_number z $total_batches ---\n";
 
-        $prompt = $prompt . "(This is part $batch_number/$total_batches of code)\n[BUG EXPLONATION]: $bug_explonation\n[CODE WITH BUG]:\n$content_part";
+        $prompt = $prompt . "\n(This is part $batch_number/$total_batches of code)\n[BUG EXPLONATION]: $bug_explonation\n[CODE WITH BUG]:\n$content_part";
 
         my $response = gemini_prompt($prompt, $model, 0);
         print $response;
@@ -348,38 +348,60 @@ sub refactor_file {
     print "\n=== REFACTOR MODE ===\n";
     print "Wybierz plik do refaktoryzacji:\n";
 
-  # ... (wybór pliku) ...
+    my $config = read_config();
+    my $prompt = $config->{"refactor-prompt"};
+    my $model = $config->{"model"};
+
+   # wybor pliku
     my $file_path = browse_files(".");
     return unless $file_path;
 
-    # Odbieramy TABLICĘ (nawet jak jest 1 element)
+    my $dir  = dirname($file_path);
+    my $base = basename($file_path);
+
+    print "Give new file name (default: ${base}_refactored): ";
+    my $new_input = <STDIN>;
+    chomp $new_input;
+
+    my $new_file_path;
+
+    if ($new_input eq "") {
+        # ENTER -> ten sam katalog
+        $new_file_path = File::Spec->catfile(
+            $dir,
+            "${base}_refactored"
+        );
+    }
+    elsif (File::Spec->file_name_is_absolute($new_input)) {
+        # pelna sciezka
+        $new_file_path = $new_input;
+    }
+    else {
+        # nazwa pliku albo sciezka wzgledna -> ten sam katalog
+        $new_file_path = File::Spec->catfile(
+            $dir,
+            $new_input
+        );
+    }
+
     my @batches = read_file_content($file_path);
     
     my $batch_number = 1;
     my $total_batches = scalar(@batches);
 
     foreach my $content_part (@batches) {
-        print "\n--- Przetwarzanie części $batch_number z $total_batches ---\n";
+        print "\n--- Przetwarzanie czesci $batch_number z $total_batches ---\n";
         
-        # Tutaj Twoje wywołanie API dla konkretnego kawałka
-        my $prompt = "Refactor this part of code (Part $batch_number/$total_batches):\n$content_part";
-        
-        # my $response = gemini_prompt($prompt, ...);
-        # print $response;
+        $prompt = $prompt . "\n(This is part $batch_number/$total_batches of code)\n\n[CODE TO REFACTOR]:\n$content_part";
+
+        my $response = gemini_prompt($prompt, $model, 1);
+        print $response;
 
         $batch_number++;
     }
 
     type_to_continue();
 }
-
-
-
-
-# ============================================
-# FUNKCJE POMOCNICZE (HELPERY)
-# ============================================
-
 
 
 
@@ -549,6 +571,7 @@ sub settings_menu{
     }
 }
 
+
 # ============= EXITING HANDLER =============
 sub exit_program {
     print "Goodbye!\n";
@@ -565,11 +588,13 @@ my %actions = (
     0 => \&exit_program,
 );
 
-my $choice = -1;
 
-while (!$choice eq 0) {
+while (1) {
     show_menu();
-    chomp($choice = <STDIN>);
+    chomp(my $choice = <STDIN>);
+    if($choice eq ""){
+        $choice = 0;
+    }
 
     if (exists $actions{$choice}) {
         $actions{$choice}->();
