@@ -4,6 +4,7 @@ use warnings;
 use strict;
 use HTTP::Tiny;
 use JSON qw(encode_json decode_json);
+use Tie::IxHash;
 use open qw(:std :utf8);
 use Cwd qw(getcwd abs_path);
 use File::Basename;
@@ -26,33 +27,152 @@ my %models_db = (
 sub append_history{
 
 }
+ 
+# wczytanie pliku konfiguracyjnego
+sub read_config {
+    my $config_path = "$ENV{HOME}/.aicode_conf/config.json";
 
-sub read_config (){
-    # my $config_path = "./aicode_conf/config.json";
-    my $config_path = $ENV{"HOME"} . "/.aicode_conf/config.json";
+    open my $fh, '<:encoding(UTF-8)', $config_path
+        or die "Couldn't open config file: $!";
 
+    local $/;
+    my $json_text = <$fh>;
+    close $fh;
 
-    my $FILE;
-    open($FILE, '<', $config_path) or die "Couldnt open the config file";
+    my $data = decode_json($json_text);
 
-    my $file_context = "";
-    while(my $line = <$FILE>){
-        $file_context = $file_context . $line;
+    tie my %ordered, 'Tie::IxHash';
+    for my $key (keys %$data) {
+        $ordered{$key} = $data->{$key};
     }
 
-    return decode_json($file_context);
+    return \%ordered;
 }
 
+
+# zapisanie pliku konfiguracyjnego
 sub save_config {
     my ($config_data) = @_;
-    my $config_path = $ENV{"HOME"} . "/.aicode_conf/config.json";
-    
-    my $json_text = JSON->new->pretty->encode($config_data);
+    my $config_path = "$ENV{HOME}/.aicode_conf/config.json";
 
-    open(my $FILE, '>', $config_path) or die "Nie można otworzyć pliku do zapisu: $!";
-    print $FILE $json_text;
-    close($FILE);
+    my $json = JSON->new->utf8->pretty;
+    my $json_text = $json->encode($config_data);
+
+    open my $fh, '>:encoding(UTF-8)', $config_path
+        or die "Can't write config file: $!";
+    print $fh $json_text;
+    close $fh;
 }
+
+
+
+# Interaktywna nawigacja po katalogach
+sub browse_files {
+    my ($current_dir) = @_;
+    
+    # Otwieramy katalog
+    opendir(my $dh, $current_dir) || die "Nie można otworzyc katalogu $current_dir: $!";
+    
+    # Sortujemy: najpierw katalogi, potem pliki. Pomijamy '.' (bieżący)
+    my @items = sort { 
+        -d "$current_dir/$a" <=> -d "$current_dir/$b" || $a cmp $b 
+    } grep { $_ ne '.' } readdir($dh);
+    closedir $dh;
+
+    # Wyświetlanie listy
+    print "\nKatalog: " . abs_path($current_dir) . "\n";
+    print "0) [ANULUJ]\n";
+    
+    my $index = 1;
+    my %map; # Mapa numer -> nazwa pliku
+
+    foreach my $item (@items) {
+        my $full_path = "$current_dir/$item";
+        my $type = -d $full_path ? "[DIR ]" : "[FILE]";
+        
+        # Oznaczenie katalogu nadrzędnego
+        if ($item eq '..') {
+            printf "%3d) [UP  ] .. (Wyjdz wyzej)\n", $index;
+        } else {
+            printf "%3d) %s %s\n", $index, $type, $item;
+        }
+        
+        $map{$index} = $item;
+        $index++;
+    }
+
+    print "Wybierz numer: ";
+    my $choice = <STDIN>;
+    chomp($choice);
+
+    # Obsługa wyboru
+    if ($choice eq '0') {
+        return undef; # Anulowanie
+    }
+    
+    if (exists $map{$choice}) {
+        my $selected = $map{$choice};
+        my $full_path = "$current_dir/$selected";
+
+        if (-d $full_path) {
+            # REKURENCJA: Jeśli wybrano folder, wchodzimy głębiej
+            return browse_files($full_path);
+        } else {
+            # Jeśli wybrano plik, zwracamy jego ścieżkę
+            return $full_path;
+        }
+    } else {
+        print "Bledny wybor, sprobuj ponownie.\n";
+        return browse_files($current_dir);
+    }
+}
+
+# Wczytywanie pliku z limitem znaków
+sub read_file_content {
+    my ($path) = @_;
+    
+    # Otwieramy plik
+    open(my $fh, '<', $path) or die "Nie mozna otworzyc pliku $path: $!";
+    
+    # Slurping - wczytujemy calosc
+    local $/; 
+    my $content = <$fh>;
+    close($fh);
+
+    my $config = read_config();
+    my $context_window = $config->{"context-window"} // -1;
+
+    my $total_len = length($content);
+    my @chunks = ();
+
+    # Obsluga pustego pliku
+    return ("") if ($total_len == 0);
+
+    # LOGIKA PODZIALU:
+    # Jesli context_window jest równe -1, nie dzielimy pliku (jeden batch)
+    if ($context_window == -1) {
+        push @chunks, $content;
+    } 
+    else {
+        # Standardowe dzielenie na batche
+        my $offset = 0;
+        while ($offset < $total_len) {
+            my $part = substr($content, $offset, $context_window);
+            push @chunks, $part;
+            $offset += $context_window;
+        }
+    }
+
+    # Informacja diagnostyczna
+    if (scalar(@chunks) > 1) {
+        print "\n[INFO] Plik przekracza limit. Podzielono na " . scalar(@chunks) . " batche.\n";
+    } elsif ($context_window == -1) {
+        print "\n[INFO] Wczytano caly plik (" . $total_len . " znakow).\n";
+    }
+
+    return @chunks;
+}
+
 
 # ============= PRINT's =============
 sub clear_screen{
@@ -66,8 +186,8 @@ sub show_menu {
     print "   GenAI Developer Assistant\n";
     print "===============================\n";
     print "1) Ask Gemini a question\n";
-    print "2) Debug(try to :D) source code file\n";
-    print "3) Refactor source code file\n";
+    print "2) Debug code\n";
+    print "3) Refactor code\n";
 
     print "\n";
     print "9) Settings\n";
@@ -189,21 +309,36 @@ sub ask_question {
 # ============= DEBUGGER HANDLER =============
 sub debug_file {
     print "\n=== DEBUGGER MODE ===\n";
-    print "Wybierz plik do analizy bledow:\n";
+    print "Wybierz plik do analizy bugow:\n";
 
-    # 1. Wybór pliku
-    my $file_path = browse_files("."); # Startujemy w obecnym katalogu
-    return unless $file_path;          # Jeśli użytkownik anulował
+    my $config = read_config();
+    my $prompt = $config->{"debug-prompt"};
+    my $model = $config->{"model"};
 
-    # 2. Wczytanie treści z limitem
-    my $content = read_file_content($file_path);
+    # loading a file
+    my $file_path = browse_files(".");
+    return unless $file_path;
+
+    my @batches = read_file_content($file_path);
     
-    # 3. Tu wstawiasz swoją logikę prompta
-    print "\n[INFO] Wczytano plik: $file_path (" . length($content) . " znakow)\n";
-    print "Generowanie promptu debugowania...\n";
-    
-    # my $prompt = "Znajdź błędy w tym kodzie:\n$content";
-    # gemini_prompt($prompt, ...);
+    my $batch_number = 1;
+    my $total_batches = scalar(@batches);
+
+    # Getting explonation of bug
+    print "Please specify the bug: ";
+    my $bug_explonation = <STDIN>;
+    chomp($bug_explonation);
+
+    foreach my $content_part (@batches) {
+        print "\n--- Przetwarzanie czesci $batch_number z $total_batches ---\n";
+
+        $prompt = $prompt . "(This is part $batch_number/$total_batches of code)\n[BUG EXPLONATION]: $bug_explonation\n[CODE WITH BUG]:\n$content_part";
+
+        my $response = gemini_prompt($prompt, $model, 0);
+        print $response;
+
+        $batch_number++;
+    }
 
     type_to_continue();
 }
@@ -244,113 +379,6 @@ sub refactor_file {
 # ============================================
 # FUNKCJE POMOCNICZE (HELPERY)
 # ============================================
-
-# Interaktywna nawigacja po katalogach
-sub browse_files {
-    my ($current_dir) = @_;
-    
-    # Otwieramy katalog
-    opendir(my $dh, $current_dir) || die "Nie można otworzyc katalogu $current_dir: $!";
-    
-    # Sortujemy: najpierw katalogi, potem pliki. Pomijamy '.' (bieżący)
-    my @items = sort { 
-        -d "$current_dir/$a" <=> -d "$current_dir/$b" || $a cmp $b 
-    } grep { $_ ne '.' } readdir($dh);
-    closedir $dh;
-
-    # Wyświetlanie listy
-    print "\nKatalog: " . abs_path($current_dir) . "\n";
-    print "0) [ANULUJ]\n";
-    
-    my $index = 1;
-    my %map; # Mapa numer -> nazwa pliku
-
-    foreach my $item (@items) {
-        my $full_path = "$current_dir/$item";
-        my $type = -d $full_path ? "[DIR ]" : "[FILE]";
-        
-        # Oznaczenie katalogu nadrzędnego
-        if ($item eq '..') {
-            printf "%3d) [UP  ] .. (Wyjdz wyzej)\n", $index;
-        } else {
-            printf "%3d) %s %s\n", $index, $type, $item;
-        }
-        
-        $map{$index} = $item;
-        $index++;
-    }
-
-    print "Wybierz numer: ";
-    my $choice = <STDIN>;
-    chomp($choice);
-
-    # Obsługa wyboru
-    if ($choice eq '0') {
-        return undef; # Anulowanie
-    }
-    
-    if (exists $map{$choice}) {
-        my $selected = $map{$choice};
-        my $full_path = "$current_dir/$selected";
-
-        if (-d $full_path) {
-            # REKURENCJA: Jeśli wybrano folder, wchodzimy głębiej
-            return browse_files($full_path);
-        } else {
-            # Jeśli wybrano plik, zwracamy jego ścieżkę
-            return $full_path;
-        }
-    } else {
-        print "Bledny wybor, sprobuj ponownie.\n";
-        return browse_files($current_dir);
-    }
-}
-
-# Wczytywanie pliku z limitem znaków
-sub read_file_content {
-    my ($path) = @_;
-    
-    # Otwieramy plik
-    open(my $fh, '<', $path) or die "Nie mozna otworzyc pliku $path: $!";
-    
-    # Slurping - wczytujemy calosc
-    local $/; 
-    my $content = <$fh>;
-    close($fh);
-
-    my $config = read_config();
-    my $context_window = $config->{"context-window"} // -1;
-
-    my $total_len = length($content);
-    my @chunks = ();
-
-    # Obsluga pustego pliku
-    return ("") if ($total_len == 0);
-
-    # LOGIKA PODZIALU:
-    # Jesli context_window jest równe -1, nie dzielimy pliku (jeden batch)
-    if ($context_window == -1) {
-        push @chunks, $content;
-    } 
-    else {
-        # Standardowe dzielenie na batche
-        my $offset = 0;
-        while ($offset < $total_len) {
-            my $part = substr($content, $offset, $context_window);
-            push @chunks, $part;
-            $offset += $context_window;
-        }
-    }
-
-    # Informacja diagnostyczna
-    if (scalar(@chunks) > 1) {
-        print "\n[INFO] Plik przekracza limit. Podzielono na " . scalar(@chunks) . " batche.\n";
-    } elsif ($context_window == -1) {
-        print "\n[INFO] Tryb nielimitowany (-1). Wczytano caly plik (" . $total_len . " znakow).\n";
-    }
-
-    return @chunks;
-}
 
 
 
@@ -537,9 +565,11 @@ my %actions = (
     0 => \&exit_program,
 );
 
-while (1) {
+my $choice = -1;
+
+while (!$choice eq 0) {
     show_menu();
-    chomp(my $choice = <STDIN>);
+    chomp($choice = <STDIN>);
 
     if (exists $actions{$choice}) {
         $actions{$choice}->();
