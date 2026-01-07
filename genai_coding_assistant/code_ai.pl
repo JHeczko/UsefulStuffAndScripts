@@ -5,9 +5,11 @@ use strict;
 use HTTP::Tiny;
 use JSON qw(encode_json decode_json);
 use open qw(:std :utf8);
+use Cwd qw(getcwd abs_path);
+use File::Basename;
+
 
 # ============= GLOBAL VARS =============
-# Główna baza modeli z podziałem na dostawców
 my %models_db = (
     1 => { name => "gemini-3-flash",        provider => "google" },
     2 => { name => "gemini-2.5-flash",      provider => "google" },
@@ -15,9 +17,15 @@ my %models_db = (
     4 => { name => "gemma-3-27b-it",           provider => "google" },
     5 => { name => "gemma-3-12b-it",           provider => "google" },
     6 => { name => "gemma-3-4b-it",           provider => "google" },
-    7 => { name => "gemma-3-2b-it",           provider => "google" },
+    7 => { name => "gemma-3-2b-it (maybe not avaible)",           provider => "google" },
     8 => { name => "gemma-3-1b-it",           provider => "google" },
 );
+my $context_window = 12000; 
+
+# ============= HELP FUNCS =============
+sub append_history{
+
+}
 
 # ============= PRINT's =============
 sub clear_screen{
@@ -31,8 +39,8 @@ sub show_menu {
     print "   GenAI Developer Assistant\n";
     print "===============================\n";
     print "1) Ask Gemini a question\n";
-    print "2) Analyze source code file\n";
-    print "3) Analyze project directory\n";
+    print "2) Debug(try to :D) source code file\n";
+    print "3) Refactor source code file\n";
 
     print "\n";
     print "9) Settings\n";
@@ -62,16 +70,26 @@ sub type_to_continue{
 }
 
 # ============= API's =============
-sub gemini_prompt {
-    my ($prompt, $model,$dummy) = @_;
-    my $system_info = "You are a profesional programmer and coding expert.";
+sub gemini_prompt{
+    my ($prompt, $model, $dummy) = @_;
+    my $config = read_config();
+    my $system_info = $config->{"sys-info-prompt"};
 
     if($dummy eq 1){
         return $prompt;
     }
 
-    my $api_key = $ENV{GEMINI_API_KEY}
-        or die "GEMINI_API_KEY not set\n";
+    my $api_key;
+
+    if(defined $ENV{'GEMINI_API_KEY'}){
+        $api_key = $ENV{GEMINI_API_KEY};
+    } else{
+        $api_key = $config->{'gemini-api-key'};
+        if ($api_key eq ""){
+            print("No gemini API key defined, please go to ~/.aicode_conf/config.json or set it via settings\n");
+            exit 1;
+        };
+    }
 
     my $ua = HTTP::Tiny->new(
         verify_SSL => 1,
@@ -128,10 +146,11 @@ sub gemini_prompt {
 
 # ============= ASK QUESTION HANDLER =============
 sub ask_question {
+    my $config = read_config();
+    
     print "Ask a question: ";
     my $prompt_text = <STDIN>;
-    my $prompt_text = $prompt_text . "\n(NOTE: Please make the answear terminal friendly(cuz answear will be shown in terminal, so no .md format). And also please no intro, go to the answear immediently.)";
-    my $config = read_config();
+    my $prompt_text = $prompt_text . $config->{"ask-prompt"};
     my $model = $config->{model};
     my $response = gemini_prompt($prompt_text, $model, 0);
     print $response;
@@ -139,18 +158,142 @@ sub ask_question {
     type_to_continue();
 }
 
-# ============= SOURCE FILE ANALIZER HANDLER =============
-sub analyze_file{
+# ============= DEBUGGER HANDLER =============
+sub debug_file {
+    print "\n=== DEBUGGER MODE ===\n";
+    print "Wybierz plik do analizy bledow:\n";
+
+    # 1. Wybór pliku
+    my $file_path = browse_files("."); # Startujemy w obecnym katalogu
+    return unless $file_path;          # Jeśli użytkownik anulował
+
+    # 2. Wczytanie treści z limitem
+    my $content = read_file_content($file_path);
     
+    # 3. Tu wstawiasz swoją logikę prompta
+    print "\n[INFO] Wczytano plik: $file_path (" . length($content) . " znakow)\n";
+    print "Generowanie promptu debugowania...\n";
+    
+    # my $prompt = "Znajdź błędy w tym kodzie:\n$content";
+    # gemini_prompt($prompt, ...);
+
+    type_to_continue();
 }
 
-sub analyze_directory{
+# ============= REFACTORER HANDLER =============
+sub refactor_file {
+    print "\n=== REFACTOR MODE ===\n";
+    print "Wybierz plik do refaktoryzacji:\n";
 
+    # 1. Wybór pliku
+    my $file_path = browse_files("."); 
+    return unless $file_path;
+
+    # 2. Wczytanie treści z limitem
+    my $content = read_file_content($file_path);
+
+    # 3. Tu wstawiasz swoją logikę prompta
+    print "\n[INFO] Wczytano plik: $file_path (" . length($content) . " znakow)\n";
+    print "Generowanie promptu refaktoryzacji...\n";
+
+    # my $prompt = "Zrób refactor tego kodu:\n$content";
+
+    type_to_continue();
+}
+
+# ============================================
+# FUNKCJE POMOCNICZE (HELPERY)
+# ============================================
+
+# Interaktywna nawigacja po katalogach
+sub browse_files {
+    my ($current_dir) = @_;
+    
+    # Otwieramy katalog
+    opendir(my $dh, $current_dir) || die "Nie można otworzyc katalogu $current_dir: $!";
+    
+    # Sortujemy: najpierw katalogi, potem pliki. Pomijamy '.' (bieżący)
+    my @items = sort { 
+        -d "$current_dir/$a" <=> -d "$current_dir/$b" || $a cmp $b 
+    } grep { $_ ne '.' } readdir($dh);
+    closedir $dh;
+
+    # Wyświetlanie listy
+    print "\nKatalog: " . abs_path($current_dir) . "\n";
+    print "0) [ANULUJ]\n";
+    
+    my $index = 1;
+    my %map; # Mapa numer -> nazwa pliku
+
+    foreach my $item (@items) {
+        my $full_path = "$current_dir/$item";
+        my $type = -d $full_path ? "[DIR ]" : "[FILE]";
+        
+        # Oznaczenie katalogu nadrzędnego
+        if ($item eq '..') {
+            printf "%3d) [UP  ] .. (Wyjdz wyzej)\n", $index;
+        } else {
+            printf "%3d) %s %s\n", $index, $type, $item;
+        }
+        
+        $map{$index} = $item;
+        $index++;
+    }
+
+    print "Wybierz numer: ";
+    my $choice = <STDIN>;
+    chomp($choice);
+
+    # Obsługa wyboru
+    if ($choice eq '0') {
+        return undef; # Anulowanie
+    }
+    
+    if (exists $map{$choice}) {
+        my $selected = $map{$choice};
+        my $full_path = "$current_dir/$selected";
+
+        if (-d $full_path) {
+            # REKURENCJA: Jeśli wybrano folder, wchodzimy głębiej
+            return browse_files($full_path);
+        } else {
+            # Jeśli wybrano plik, zwracamy jego ścieżkę
+            return $full_path;
+        }
+    } else {
+        print "Bledny wybor, sprobuj ponownie.\n";
+        return browse_files($current_dir);
+    }
+}
+
+# Wczytywanie pliku z limitem znaków
+sub read_file_content {
+    my ($path) = @_;
+    
+    open(my $fh, '<', $path) or die "Nie mozna otworzyc pliku $path: $!";
+    
+    # Wczytujemy cały plik do zmiennej
+    local $/; 
+    my $content = <$fh>;
+    close($fh);
+
+    my $len = length($content);
+
+    # Sprawdzamy limit context window
+    if ($len > $context_window && $context_window > 0) {
+        print "\n[WARN] Plik jest za duzy ($len znakow). Przycinam do $context_window znakow.\n";
+        $content = substr($content, 0, $context_window);
+        $content .= "\n... [TRUNCATED DUE TO CONTEXT LIMIT] ...";
+    }
+
+    return $content;
 }
 
 # ============= SETTING HANDLER =============
 sub read_config (){
-    my $config_path = "./aicode_conf/config.json";
+    # my $config_path = "./aicode_conf/config.json";
+    my $config_path = $ENV{"HOME"} . "/.aicode_conf/config.json";
+
 
     my $FILE;
     open($FILE, '<', $config_path) or die "Couldnt open the config file";
@@ -165,8 +308,8 @@ sub read_config (){
 
 sub save_config {
     my ($config_data) = @_;
-    my $config_path = "./aicode_conf/config.json";
-
+    my $config_path = $ENV{"HOME"} . "/.aicode_conf/config.json";
+    
     my $json_text = JSON->new->pretty->encode($config_data);
 
     open(my $FILE, '>', $config_path) or die "Nie można otworzyć pliku do zapisu: $!";
@@ -175,18 +318,66 @@ sub save_config {
 }
 
 sub show_keys {
-    my $gemini_api = $ENV{GEMINI_API_KEY} or "";    
-    my $openai_api = $ENV{OPENAI_API_KEY} or "";
+    my $config = read_config();
+    my $gemini_api;
+    my $openai_api;
+
+    if(defined $ENV{GEMINI_API_KEY}){
+        $gemini_api = $ENV{GEMINI_API_KEY};
+    } else{
+        $gemini_api = $config->{'gemini-api-key'};
+    }
+
+    if(defined $ENV{OPENAI_API_KEY}){
+        $openai_api = $ENV{OPENAI_API_KEY};
+    } else{
+        $openai_api = $config->{'openai-api-key'};
+    }
     print("Please remember to store them as ENVIRONMENT VARIABLES:\n\t-GEMINI API KEY: $gemini_api\n\t-OPENAI API KEY: $openai_api\n");  
     type_to_continue();
 } 
 
 sub set_keys {
-    my $key = <STDIN>;
-    chomp($key);
+    print "\n--- ZARZADZANIE KLUCZAMI API ---\n";
+    print "1) Ustaw Gemini API Key (Google)\n";
+    print "2) Ustaw OpenAI API Key\n";
+    print "Wybierz opcje: ";
+
+    my $option = <STDIN>;
+    chomp($option);
 
     my $config = read_config();
-    $config->{"gemini-api-key"} = $key;
+
+    if ($option eq "1") {
+        print "Wprowadz klucz dla Gemini: ";
+        my $key = <STDIN>;
+        chomp($key);
+        
+        if ($key ne "") {
+            $config->{"gemini-api-key"} = $key;
+            print "Klucz Gemini zostal zapisany.\n";
+            type_to_continue();
+        } else {
+            return;
+        }
+
+    } elsif ($option eq "2") {
+        print "Wprowadz klucz dla OpenAI: ";
+        my $key = <STDIN>;
+        chomp($key);
+
+        if ($key ne "") {
+            $config->{"openai-api-key"} = $key;
+            print "Klucz OpenAI zostal zapisany.\n";
+            type_to_continue();
+        } else {
+            return;
+        }
+
+    } else {
+        return;
+    }
+
     save_config($config);
 }
 
@@ -268,11 +459,12 @@ sub exit_program {
 # ============= MAIN =============
 my %actions = (
     1 => \&ask_question,
-    2 => \&analyze_file,
-    3 => \&analyze_directory,
+    2 => \&debug_file,
+    3 => \&refactor_file,
     9 => \&settings_menu,
     0 => \&exit_program,
 );
+
 
 while (1) {
     show_menu();

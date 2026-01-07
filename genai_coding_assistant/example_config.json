@@ -1,0 +1,10 @@
+{
+   "refactor-prompt" : "YOUR_API_KEY",
+   "openai-api-key" : "YOUR_API_KEY",
+   "type" : "google",
+   "debug-prompt" : "",
+   "ask-prompt" : "\n(NOTE: Please make the answear terminal friendly(cuz answear will be shown in terminal, so no .md format). And also please no intro, go to the answear immediently.)",
+   "gemini-api-key" : "",
+   "sys-info-prompt" : "You are a profesional programmer and coding expert.",
+   "model" : "gemma-3-1b-it"
+}
