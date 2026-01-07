@@ -1,10 +1,11 @@
 {
    "model" : "gemma-3-1b-it",
    "type" : "google",
-   "gemini-api-key" : "YOUR_API_KEY",
-   "openai-api-key" : "YOUR_API_KEY",
+   "gemini-api-key" : "",
+   "openai-api-key" : "",
    "sys-info-prompt" : "You are a profesional programmer and coding expert.",
-   "ask-prompt" : "\n(NOTE: Please make the answear terminal friendly(cuz answear will be shown in terminal, so no .md format). And also please no intro, go to the answear immediently.)",
-   "debug-prompt" : "",
-   "refactor-prompt" : ""
+   "ask-prompt" : "\n(NOTE: Please make the answear terminal friendly(so no .md format). And also please no intro, go to the answear immediently.)",
+   "debug-prompt" : "You will be given a whole code or code in parts, your tasks is to find a bug specified (or not) down below by me. Please tell me in which line there is a bug, and also tell me how to fix it(please give me like whole lines fix then). Be specific, bad answear will be punished. Please make the answear terminal friendly(cuz answear will be shown in terminal, so no .md format. Please no intro, go to the answear immediently.",
+   "refactor-prompt" : "You will be given a whole code or code in parts. Your task is to refactor it. Please make sure that code will work the same as before, but refactor if possible. eliminate code smell etc in general do refactor! Plase dont make any intros, and dont use .md format(so no ```perl and similar symbols in response please), your answear has to be code ready to paste and copy to file!",
+   "context-window" : -1
 }

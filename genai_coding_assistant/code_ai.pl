@@ -70,6 +70,7 @@ sub save_config {
 sub browse_files {
     my ($current_dir) = @_;
     
+    clear_screen();
     # Otwieramy katalog
     opendir(my $dh, $current_dir) || die "Nie można otworzyc katalogu $current_dir: $!";
     
@@ -107,7 +108,7 @@ sub browse_files {
 
     # Obsługa wyboru
     if ($choice eq '0') {
-        return undef; # Anulowanie
+        return undef;
     }
     
     if (exists $map{$choice}) {
@@ -310,7 +311,8 @@ sub ask_question {
 sub debug_file {
     print "\n=== DEBUGGER MODE ===\n";
     print "Wybierz plik do analizy bugow:\n";
-
+    type_to_continue();
+    
     my $config = read_config();
     my $prompt = $config->{"debug-prompt"};
     my $model = $config->{"model"};
@@ -347,6 +349,7 @@ sub debug_file {
 sub refactor_file {
     print "\n=== REFACTOR MODE ===\n";
     print "Wybierz plik do refaktoryzacji:\n";
+    type_to_continue();
 
     my $config = read_config();
     my $prompt = $config->{"refactor-prompt"};
@@ -371,13 +374,7 @@ sub refactor_file {
             $dir,
             "${base}_refactored"
         );
-    }
-    elsif (File::Spec->file_name_is_absolute($new_input)) {
-        # pelna sciezka
-        $new_file_path = $new_input;
-    }
-    else {
-        # nazwa pliku albo sciezka wzgledna -> ten sam katalog
+    }  else {
         $new_file_path = File::Spec->catfile(
             $dir,
             $new_input
@@ -389,17 +386,28 @@ sub refactor_file {
     my $batch_number = 1;
     my $total_batches = scalar(@batches);
 
+    open my $OUT, '>:encoding(UTF-8)', $new_file_path or die "Can't create output file $new_file_path: $!";
+
     foreach my $content_part (@batches) {
         print "\n--- Przetwarzanie czesci $batch_number z $total_batches ---\n";
         
         $prompt = $prompt . "\n(This is part $batch_number/$total_batches of code)\n\n[CODE TO REFACTOR]:\n$content_part";
 
-        my $response = gemini_prompt($prompt, $model, 1);
-        print $response;
+        my $response = gemini_prompt($prompt, $model, 0);
+
+        unless (defined $response && $response ne "") {
+            warn "[WARNING] Empty response for batch $batch_number\n";
+            next;
+        }
+
+        print $OUT "\n";
+        print $OUT $response;
+        print $OUT "\n";
 
         $batch_number++;
     }
-
+    
+    print("Gotowe przetworzono caly plik i zapisany pod $new_file_path");
     type_to_continue();
 }
 
