@@ -20,11 +20,38 @@ my %models_db = (
     7 => { name => "gemma-3-2b-it (maybe not avaible)",           provider => "google" },
     8 => { name => "gemma-3-1b-it",           provider => "google" },
 );
-my $context_window = 12000; 
+
 
 # ============= HELP FUNCS =============
 sub append_history{
 
+}
+
+sub read_config (){
+    # my $config_path = "./aicode_conf/config.json";
+    my $config_path = $ENV{"HOME"} . "/.aicode_conf/config.json";
+
+
+    my $FILE;
+    open($FILE, '<', $config_path) or die "Couldnt open the config file";
+
+    my $file_context = "";
+    while(my $line = <$FILE>){
+        $file_context = $file_context . $line;
+    }
+
+    return decode_json($file_context);
+}
+
+sub save_config {
+    my ($config_data) = @_;
+    my $config_path = $ENV{"HOME"} . "/.aicode_conf/config.json";
+    
+    my $json_text = JSON->new->pretty->encode($config_data);
+
+    open(my $FILE, '>', $config_path) or die "Nie można otworzyć pliku do zapisu: $!";
+    print $FILE $json_text;
+    close($FILE);
 }
 
 # ============= PRINT's =============
@@ -57,6 +84,7 @@ sub show_option_menu {
     print "2) Set API KEY's\n";
     print "3) Select model\n";
     print "4) Show current model\n";
+    print "5) Set context window length\n";
 
     
     print "\n";
@@ -185,21 +213,33 @@ sub refactor_file {
     print "\n=== REFACTOR MODE ===\n";
     print "Wybierz plik do refaktoryzacji:\n";
 
-    # 1. Wybór pliku
-    my $file_path = browse_files("."); 
+  # ... (wybór pliku) ...
+    my $file_path = browse_files(".");
     return unless $file_path;
 
-    # 2. Wczytanie treści z limitem
-    my $content = read_file_content($file_path);
+    # Odbieramy TABLICĘ (nawet jak jest 1 element)
+    my @batches = read_file_content($file_path);
+    
+    my $batch_number = 1;
+    my $total_batches = scalar(@batches);
 
-    # 3. Tu wstawiasz swoją logikę prompta
-    print "\n[INFO] Wczytano plik: $file_path (" . length($content) . " znakow)\n";
-    print "Generowanie promptu refaktoryzacji...\n";
+    foreach my $content_part (@batches) {
+        print "\n--- Przetwarzanie części $batch_number z $total_batches ---\n";
+        
+        # Tutaj Twoje wywołanie API dla konkretnego kawałka
+        my $prompt = "Refactor this part of code (Part $batch_number/$total_batches):\n$content_part";
+        
+        # my $response = gemini_prompt($prompt, ...);
+        # print $response;
 
-    # my $prompt = "Zrób refactor tego kodu:\n$content";
+        $batch_number++;
+    }
 
     type_to_continue();
 }
+
+
+
 
 # ============================================
 # FUNKCJE POMOCNICZE (HELPERY)
@@ -270,53 +310,55 @@ sub browse_files {
 sub read_file_content {
     my ($path) = @_;
     
+    # Otwieramy plik
     open(my $fh, '<', $path) or die "Nie mozna otworzyc pliku $path: $!";
     
-    # Wczytujemy cały plik do zmiennej
+    # Slurping - wczytujemy calosc
     local $/; 
     my $content = <$fh>;
     close($fh);
 
-    my $len = length($content);
+    my $config = read_config();
+    my $context_window = $config->{"context-window"} // -1;
 
-    # Sprawdzamy limit context window
-    if ($len > $context_window && $context_window > 0) {
-        print "\n[WARN] Plik jest za duzy ($len znakow). Przycinam do $context_window znakow.\n";
-        $content = substr($content, 0, $context_window);
-        $content .= "\n... [TRUNCATED DUE TO CONTEXT LIMIT] ...";
+    my $total_len = length($content);
+    my @chunks = ();
+
+    # Obsluga pustego pliku
+    return ("") if ($total_len == 0);
+
+    # LOGIKA PODZIALU:
+    # Jesli context_window jest równe -1, nie dzielimy pliku (jeden batch)
+    if ($context_window == -1) {
+        push @chunks, $content;
+    } 
+    else {
+        # Standardowe dzielenie na batche
+        my $offset = 0;
+        while ($offset < $total_len) {
+            my $part = substr($content, $offset, $context_window);
+            push @chunks, $part;
+            $offset += $context_window;
+        }
     }
 
-    return $content;
-}
-
-# ============= SETTING HANDLER =============
-sub read_config (){
-    # my $config_path = "./aicode_conf/config.json";
-    my $config_path = $ENV{"HOME"} . "/.aicode_conf/config.json";
-
-
-    my $FILE;
-    open($FILE, '<', $config_path) or die "Couldnt open the config file";
-
-    my $file_context = "";
-    while(my $line = <$FILE>){
-        $file_context = $file_context . $line;
+    # Informacja diagnostyczna
+    if (scalar(@chunks) > 1) {
+        print "\n[INFO] Plik przekracza limit. Podzielono na " . scalar(@chunks) . " batche.\n";
+    } elsif ($context_window == -1) {
+        print "\n[INFO] Tryb nielimitowany (-1). Wczytano caly plik (" . $total_len . " znakow).\n";
     }
 
-    return decode_json($file_context);
+    return @chunks;
 }
 
-sub save_config {
-    my ($config_data) = @_;
-    my $config_path = $ENV{"HOME"} . "/.aicode_conf/config.json";
-    
-    my $json_text = JSON->new->pretty->encode($config_data);
 
-    open(my $FILE, '>', $config_path) or die "Nie można otworzyć pliku do zapisu: $!";
-    print $FILE $json_text;
-    close($FILE);
-}
 
+
+
+# ============================================
+# SETTING HANDLER
+# ============================================
 sub show_keys {
     my $config = read_config();
     my $gemini_api;
@@ -416,6 +458,35 @@ sub set_model {
     }
 }
 
+sub set_context_window_length {
+    my $config = read_config();
+    
+    my $current_val = $config->{"context-window"};
+
+    print "\n--- USTAWIANIE DLUGOSCI OKNA KONTEKSTU ---";
+    print "\nAktualna dlugosc: $current_val znakow";
+    print "\nPodaj nowa dlugosc (tylko cyfry): ";
+
+    my $input = <STDIN>;
+    chomp($input);
+
+    if ($input eq "") {
+        print "Anulowano. Zachowano stara wartosc.\n";
+        type_to_continue();
+        return;
+    }
+
+    if ($input =~ /^\d+$/ || $input == -1) {
+        $config->{"context-window"} = int($input);
+        save_config($config);
+        print "Sukces! Nowa dlugosc okna to: $input znakow.\n";
+        type_to_continue();
+    } else {
+        print "Blad: Wprowadzona wartosc '$input' nie jest poprawna liczba!\n";
+        type_to_continue();
+    }
+}
+
 sub curr_model{
     my $config = read_config();
     print("====== [CURRENT MODEL] ======\nCurrent model is $config->{model}, from $config->{type}.\n");
@@ -429,6 +500,7 @@ sub settings_menu{
     2 => \&set_keys,
     3 => \&set_model,
     4 => \&curr_model,
+    5 => \&set_context_window_length,
     );
 
     my $option;
@@ -464,7 +536,6 @@ my %actions = (
     9 => \&settings_menu,
     0 => \&exit_program,
 );
-
 
 while (1) {
     show_menu();
