@@ -189,6 +189,8 @@ sub show_menu {
     print "1) Ask Gemini a question\n";
     print "2) Debug code\n";
     print "3) Refactor code\n";
+    print "4) Comment code\n";
+    print "5) Modify code\n";
 
     print "\n";
     print "9) Settings\n";
@@ -411,8 +413,142 @@ sub refactor_file {
     type_to_continue();
 }
 
+# ============= COMMENT HANDLER =============
+sub comment_file{
+    print "\n=== COMMENT MODE ===\n";
+    print "Wybierz plik do zrobienia komentarzy:\n";
+    type_to_continue();
 
+    my $config = read_config();
+    my $prompt = $config->{"comment-prompt"};
+    my $model = $config->{"model"};
 
+   # wybor pliku
+    my $file_path = browse_files(".");
+    return unless $file_path;
+
+    my $dir  = dirname($file_path);
+    my $base = basename($file_path);
+
+    print "Give new file name (default: ${base}_commented): ";
+    my $new_input = <STDIN>;
+    chomp $new_input;
+
+    my $new_file_path;
+
+    if ($new_input eq "") {
+        # ENTER -> ten sam katalog
+        $new_file_path = File::Spec->catfile(
+            $dir,
+            "${base}_commented"
+        );
+    }  else {
+        $new_file_path = File::Spec->catfile(
+            $dir,
+            $new_input
+        );
+    }
+
+    my @batches = read_file_content($file_path);
+    
+    my $batch_number = 1;
+    my $total_batches = scalar(@batches);
+
+    open my $OUT, '>:encoding(UTF-8)', $new_file_path or die "Can't create output file $new_file_path: $!";
+
+    foreach my $content_part (@batches) {
+        print "\n--- Przetwarzanie czesci $batch_number z $total_batches ---\n";
+        
+        $prompt = $prompt . "\n(This is part $batch_number/$total_batches of code)\n[CODE TO COMMENT]:\n$content_part";
+
+        my $response = gemini_prompt($prompt, $model, 0);
+
+        unless (defined $response && $response ne "") {
+            warn "[WARNING] Empty response for batch $batch_number\n";
+            next;
+        }
+
+        print $OUT "\n";
+        print $OUT $response;
+        print $OUT "\n";
+
+        $batch_number++;
+    }
+    
+    print("Gotowe przetworzono caly plik i zapisany pod $new_file_path");
+    type_to_continue();
+}
+
+# ============= MODIFY HANDLER =============
+sub modify_file{
+    print "\n=== MODIFY MODE ===\n";
+    print "Wybierz plik do modyfikacji:\n";
+    type_to_continue();
+
+    my $config = read_config();
+    my $prompt = $config->{"modify-prompt"};
+    my $model = $config->{"model"};
+
+   # wybor pliku
+    my $file_path = browse_files(".");
+    return unless $file_path;
+
+    my $dir  = dirname($file_path);
+    my $base = basename($file_path);
+
+    print "Give new file name (default: ${base}_modified): ";
+    my $new_input = <STDIN>;
+    chomp $new_input;
+
+    my $new_file_path;
+
+    if ($new_input eq "") {
+        # ENTER -> ten sam katalog
+        $new_file_path = File::Spec->catfile(
+            $dir,
+            "${base}_modified"
+        );
+    }  else {
+        $new_file_path = File::Spec->catfile(
+            $dir,
+            $new_input
+        );
+    }
+
+    # getting user instructions
+    print "Please specify what to do with code: ";
+    my $user_instructions = <STDIN>;
+    chomp($user_instructions);
+
+    my @batches = read_file_content($file_path);
+    
+    my $batch_number = 1;
+    my $total_batches = scalar(@batches);
+
+    open my $OUT, '>:encoding(UTF-8)', $new_file_path or die "Can't create output file $new_file_path: $!";
+
+    foreach my $content_part (@batches) {
+        print "\n--- Przetwarzanie czesci $batch_number z $total_batches ---\n";
+        
+        $prompt = $prompt . "\n(This is part $batch_number/$total_batches of code)\n[INSTRUCTIONS]: $user_instructions\n[CODE TO MODIFY]:\n$content_part";
+
+        my $response = gemini_prompt($prompt, $model, 0);
+
+        unless (defined $response && $response ne "") {
+            warn "[WARNING] Empty response for batch $batch_number\n";
+            next;
+        }
+
+        print $OUT "\n";
+        print $OUT $response;
+        print $OUT "\n";
+
+        $batch_number++;
+    }
+    
+    print("Gotowe przetworzono caly plik i zapisany pod $new_file_path");
+    type_to_continue();
+}
 
 # ============================================
 # SETTING HANDLER
@@ -440,7 +576,9 @@ sub show_keys {
 sub set_keys {
     print "\n--- ZARZADZANIE KLUCZAMI API ---\n";
     print "1) Ustaw Gemini API Key (Google)\n";
-    print "2) Ustaw OpenAI API Key\n";
+    print "2) Ustaw OpenAI API Key\n\n";
+    
+    print "0) Exit\n";
     print "Wybierz opcje: ";
 
     my $option = <STDIN>;
@@ -522,7 +660,11 @@ sub set_context_window_length {
     my $current_val = $config->{"context-window"};
 
     print "\n--- USTAWIANIE DLUGOSCI OKNA KONTEKSTU ---";
-    print "\nAktualna dlugosc: $current_val znakow";
+    if($current_val == -1){
+        print "\nAktualna dlugosc: brak limitu";
+    }else{
+        print "\nAktualna dlugosc: $current_val znakow";
+    }
     print "\nPodaj nowa dlugosc (tylko cyfry): ";
 
     my $input = <STDIN>;
@@ -592,6 +734,8 @@ my %actions = (
     1 => \&ask_question,
     2 => \&debug_file,
     3 => \&refactor_file,
+    4 => \&comment_file,
+    5 => \&modify_file,
     9 => \&settings_menu,
     0 => \&exit_program,
 );

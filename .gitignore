@@ -986,4 +986,7 @@ http-client.private.env.json
 # =-=-=-=-=-=-=-=-=-= Custom User Section =-=-=-=-=-=-=-=-=-=
 config.json
 aicode_conf
+code_ai.pl_commented
+code_ai.pl_modified
+code_ai.pl_modified2
 # =-=-=-=-=-=-=-=-=-= END Custom User Section =-=-=-=-=-=-=-=-=-=
