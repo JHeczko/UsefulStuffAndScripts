@@ -1,5 +1,16 @@
+## Installation
+Important info about installation, there is makefile prepared, you have to have sudo in order to install a script(it is being install in `/usr/local/bin/`). There is all posible combination of installation of scripts:
+- `make install`: Install all tools
+- `make uninstall`: Remove all tools
+- `make install-genai`: Install GenAI assistant only
+- `make uninstall-genai`: Remove GenAI assistant
+- `make install-gitignore`: Install gitignore tool only
+- `make uninstall-gitignore`: Remove gitignore tool
+- `make help`: shows a above list of commands with explonation
+
 # UsefullStuff
 It is a set of scripts and other stuff that i mostly use to automate tasks that can be automated, below there a list of those scirpt with the description.
+
 
 ## `Git ignore file creator` (`createigit`)
 Script for creating and managing the .gitignore files, with sections that you can add, remove, etc. You are able to control the state of the file, create new .gitignore files that can be customized to your needs

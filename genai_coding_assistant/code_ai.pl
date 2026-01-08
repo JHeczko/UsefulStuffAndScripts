@@ -22,6 +22,16 @@ my %models_db = (
     8 => { name => "gemma-3-1b-it",           provider => "google" },
 );
 
+# ============= COLOR CONSTANTS =============
+my $RESET = "\e[0m";
+my $BOLD = "\e[1m";
+my $RED = "\e[31m";
+my $GREEN = "\e[32m";
+my $YELLOW = "\e[33m";
+my $BLUE = "\e[34m";
+my $MAGENTA = "\e[35m";
+my $CYAN = "\e[36m";
+
 # ============================================
 # HELPER FUNCTIONS
 # ============================================
@@ -75,28 +85,28 @@ sub browse_files {
     closedir $dh;
 
     # Wyświetlanie listy
-    print "\nDirectory: " . abs_path($current_dir) . "\n";
-    print "0) [CANCEL]\n";
+    print "\n${BLUE}${BOLD}Directory:${RESET} " . abs_path($current_dir) . "\n";
+    print "${YELLOW}0) [CANCEL]${RESET}\n";
     
     my $index = 1;
     my %map; # Mapa numer -> nazwa pliku
 
     foreach my $item (@items) {
         my $full_path = "$current_dir/$item";
-        my $type = -d $full_path ? "[DIR ]" : "[FILE]";
+        my $type = -d $full_path ? "${CYAN}[DIR ]${RESET}" : "${GREEN}[FILE]${RESET}";
         
         # Oznaczenie katalogu nadrzędnego
         if ($item eq '..') {
-            printf "%3d) [UP  ] .. (Go up)\n", $index;
+            printf "${YELLOW}%3d) [UP  ] .. (Go up)${RESET}\n", $index;
         } else {
-            printf "%3d) %s %s\n", $index, $type, $item;
+            printf "${YELLOW}%3d) %s %s${RESET}\n", $index, $type, $item;
         }
         
         $map{$index} = $item;
         $index++;
     }
 
-    print "Choose number: ";
+    print "${MAGENTA}Choose number: ${RESET}";
     my $choice = <STDIN>;
     chomp($choice);
 
@@ -117,7 +127,7 @@ sub browse_files {
             return $full_path;
         }
     } else {
-        print "Invalid choice, try again.\n";
+        print "${RED}Invalid choice, try again.${RESET}\n";
         return browse_files($current_dir);
     }
 }
@@ -160,9 +170,9 @@ sub read_file_content {
 
     # Informacja diagnostyczna
     if (scalar(@chunks) > 1) {
-        print "\n[INFO] File exceeds limit. Split into " . scalar(@chunks) . " batches.\n";
+        print "\n${CYAN}[INFO] File exceeds limit. Split into " . scalar(@chunks) . " batches.${RESET}\n";
     } elsif ($context_window == -1) {
-        print "\n[INFO] Loaded entire file (" . $total_len . " characters).\n";
+        print "\n${CYAN}[INFO] Loaded entire file (" . $total_len . " characters).${RESET}\n";
     }
 
     return @chunks;
@@ -180,43 +190,43 @@ sub clear_screen{
 # show main menu
 sub show_menu {
     clear_screen();
-    print "\n===============================\n";
+    print "\n${BLUE}${BOLD}===============================\n";
     print "   GenAI Developer Assistant\n";
-    print "===============================\n";
-    print "1) Ask Gemini a question\n";
+    print "===============================\n${RESET}";
+    print "${GREEN}1) Ask Gemini a question\n";
     print "2) Debug code\n";
     print "3) Refactor code\n";
     print "4) Comment code\n";
-    print "5) Modify code\n";
+    print "5) Modify code\n${RESET}";
 
     print "\n";
-    print "8) Help\n";
+    print "${YELLOW}8) Help\n";
     print "9) Settings\n";
-    print "0) Exit\n";
-    print "Choose an option: ";
+    print "0) Exit\n${RESET}";
+    print "${MAGENTA}Choose an option: ${RESET}";
 }
 
 # show settings menu
 sub show_option_menu {
     clear_screen();
-    print "\n----------------------------\n";
+    print "\n${BLUE}${BOLD}----------------------------\n";
     print "   Setting menu\n";
-    print "----------------------------\n";
-    print "1) Check API KEY's\n";
+    print "----------------------------\n${RESET}";
+    print "${GREEN}1) Check API KEY's\n";
     print "2) Set API KEY's\n";
     print "3) Select model\n";
     print "4) Show current model\n";
-    print "5) Set context window length\n";
+    print "5) Set context window length\n${RESET}";
 
     
     print "\n";
-    print "0) Exit\n";
-    print "Choose an option: ";
+    print "${YELLOW}0) Exit\n${RESET}";
+    print "${MAGENTA}Choose an option: ${RESET}";
 }
 
 # prompt to continue
 sub type_to_continue{
-    print "\nType in anything to continue...";
+    print "\n${YELLOW}Type in anything to continue...${RESET}";
     my $contine = <STDIN>;
 }
 
@@ -240,7 +250,7 @@ sub gemini_prompt{
     } else{
         $api_key = $config->{'gemini-api-key'};
         if ($api_key eq ""){
-            print("No gemini API key defined, please go to ~/.aicode_conf/config.json or set it via settings\n");
+            print("${RED}No gemini API key defined, please go to ~/.aicode_conf/config.json or set it via settings${RESET}\n");
             exit 1;
         };
     }
@@ -287,7 +297,7 @@ sub gemini_prompt{
             }
         };
 
-        print "=======ERROR========\nGemini API error ($res->{status}): $msg\n";
+        print "${RED}=======ERROR========\nGemini API error ($res->{status}): $msg${RESET}\n";
         return "";
     }
 
@@ -305,20 +315,20 @@ sub gemini_prompt{
 sub ask_question {
     my $config = read_config();
     
-    print "Ask a question: ";
+    print "${YELLOW}Ask a question: ${RESET}";
     my $prompt_text = <STDIN>;
     $prompt_text = $prompt_text . $config->{"ask-prompt"};
     my $model = $config->{model};
     my $response = gemini_prompt($prompt_text, $model, 0);
     print $response;
-    print "\n=========END============";
+    print "\n${BLUE}=========END===========${RESET}";
     type_to_continue();
 }
 
 # handle debug file
 sub debug_file {
-    print "\n=== DEBUGGER MODE ===\n";
-    print "Select file to analyze for bugs:\n";
+    print "\n${BLUE}${BOLD}=== DEBUGGER MODE ===${RESET}\n";
+    print "${CYAN}Select file to analyze for bugs:${RESET}\n";
     type_to_continue();
     
     my $config = read_config();
@@ -335,12 +345,12 @@ sub debug_file {
     my $total_batches = scalar(@batches);
 
     # Getting explonation of bug
-    print "Please specify the bug: ";
+    print "${YELLOW}Please specify the bug: ${RESET}";
     my $bug_explonation = <STDIN>;
     chomp($bug_explonation);
 
     foreach my $content_part (@batches) {
-        print "\n--- Processing part $batch_number of $total_batches ---\n";
+        print "\n${CYAN}--- Processing part $batch_number of $total_batches ---${RESET}\n";
 
         $prompt = $prompt . "\n(This is part $batch_number/$total_batches of code)\n[BUG EXPLONATION]: $bug_explonation\n[CODE WITH BUG]:\n$content_part";
 
@@ -355,8 +365,8 @@ sub debug_file {
 
 # handle refactor file
 sub refactor_file {
-    print "\n=== REFACTOR MODE ===\n";
-    print "Select file to refactor:\n";
+    print "\n${BLUE}${BOLD}=== REFACTOR MODE ===${RESET}\n";
+    print "${CYAN}Select file to refactor:${RESET}\n";
     type_to_continue();
 
     my $config = read_config();
@@ -370,7 +380,7 @@ sub refactor_file {
     my $dir  = dirname($file_path);
     my $base = basename($file_path);
 
-    print "Give new file name (default: ${base}_refactored): ";
+    print "${YELLOW}Give new file name (default: ${base}_refactored): ${RESET}";
     my $new_input = <STDIN>;
     chomp $new_input;
 
@@ -397,14 +407,14 @@ sub refactor_file {
     open my $OUT, '>:encoding(UTF-8)', $new_file_path or die "Can't create output file $new_file_path: $!";
 
     foreach my $content_part (@batches) {
-        print "\n--- Processing part $batch_number of $total_batches ---\n";
+        print "\n${CYAN}--- Processing part $batch_number of $total_batches ---${RESET}\n";
         
         $prompt = $prompt . "\n(This is part $batch_number/$total_batches of code)\n\n[CODE TO REFACTOR]:\n$content_part";
 
         my $response = gemini_prompt($prompt, $model, 0);
 
         unless (defined $response && $response ne "") {
-            warn "[WARNING] Empty response for batch $batch_number\n";
+            warn "${YELLOW}[WARNING] Empty response for batch $batch_number${RESET}\n";
             next;
         }
 
@@ -415,14 +425,14 @@ sub refactor_file {
         $batch_number++;
     }
     
-    print("Done, processed entire file and saved to $new_file_path");
+    print("${GREEN}Done, processed entire file and saved to $new_file_path${RESET}");
     type_to_continue();
 }
 
 # handle comment file
 sub comment_file{
-    print "\n=== COMMENT MODE ===\n";
-    print "Select file to add comments:\n";
+    print "\n${BLUE}${BOLD}=== COMMENT MODE ===${RESET}\n";
+    print "${CYAN}Select file to add comments:${RESET}\n";
     type_to_continue();
 
     my $config = read_config();
@@ -436,7 +446,7 @@ sub comment_file{
     my $dir  = dirname($file_path);
     my $base = basename($file_path);
 
-    print "Give new file name (default: ${base}_commented): ";
+    print "${YELLOW}Give new file name (default: ${base}_commented): ${RESET}";
     my $new_input = <STDIN>;
     chomp $new_input;
 
@@ -463,14 +473,14 @@ sub comment_file{
     open my $OUT, '>:encoding(UTF-8)', $new_file_path or die "Can't create output file $new_file_path: $!";
 
     foreach my $content_part (@batches) {
-        print "\n--- Processing part $batch_number of $total_batches ---\n";
+        print "\n${CYAN}--- Processing part $batch_number of $total_batches ---${RESET}\n";
         
         $prompt = $prompt . "\n(This is part $batch_number/$total_batches of code)\n[CODE TO COMMENT]:\n$content_part";
 
         my $response = gemini_prompt($prompt, $model, 0);
 
         unless (defined $response && $response ne "") {
-            warn "[WARNING] Empty response for batch $batch_number\n";
+            warn "${YELLOW}[WARNING] Empty response for batch $batch_number${RESET}\n";
             next;
         }
 
@@ -481,14 +491,14 @@ sub comment_file{
         $batch_number++;
     }
     
-    print("Done, processed entire file and saved to $new_file_path");
+    print("${GREEN}Done, processed entire file and saved to $new_file_path${RESET}");
     type_to_continue();
 }
 
 # handle modify file
 sub modify_file{
-    print "\n=== MODIFY MODE ===\n";
-    print "Select file to modify:\n";
+    print "\n${BLUE}${BOLD}=== MODIFY MODE ===${RESET}\n";
+    print "${CYAN}Select file to modify:${RESET}\n";
     type_to_continue();
 
     my $config = read_config();
@@ -502,7 +512,7 @@ sub modify_file{
     my $dir  = dirname($file_path);
     my $base = basename($file_path);
 
-    print "Give new file name (default: ${base}_modified): ";
+    print "${YELLOW}Give new file name (default: ${base}_modified): ${RESET}";
     my $new_input = <STDIN>;
     chomp $new_input;
 
@@ -522,7 +532,7 @@ sub modify_file{
     }
 
     # getting user instructions
-    print "Please specify what to do with code: ";
+    print "${YELLOW}Please specify what to do with code: ${RESET}";
     my $user_instructions = <STDIN>;
     chomp($user_instructions);
 
@@ -534,14 +544,14 @@ sub modify_file{
     open my $OUT, '>:encoding(UTF-8)', $new_file_path or die "Can't create output file $new_file_path: $!";
 
     foreach my $content_part (@batches) {
-        print "\n--- Processing part $batch_number of $total_batches ---\n";
+        print "\n${CYAN}--- Processing part $batch_number of $total_batches ---${RESET}\n";
         
         $prompt = $prompt . "\n(This is part $batch_number/$total_batches of code)\n[INSTRUCTIONS]: $user_instructions\n[CODE TO MODIFY]:\n$content_part";
 
         my $response = gemini_prompt($prompt, $model, 0);
 
         unless (defined $response && $response ne "") {
-            warn "[WARNING] Empty response for batch $batch_number\n";
+            warn "${YELLOW}[WARNING] Empty response for batch $batch_number${RESET}\n";
             next;
         }
 
@@ -552,7 +562,7 @@ sub modify_file{
         $batch_number++;
     }
     
-    print("Done, processed entire file and saved to $new_file_path");
+    print("${GREEN}Done, processed entire file and saved to $new_file_path${RESET}");
     type_to_continue();
 }
 
@@ -576,17 +586,17 @@ sub show_keys {
     } else{
         $openai_api = $config->{'openai-api-key'};
     }
-    print("Please remember to store them as ENVIRONMENT VARIABLES:\n\t-GEMINI API KEY: $gemini_api\n\t-OPENAI API KEY: $openai_api\n");  
+    print("${CYAN}Please remember to store them as ENVIRONMENT VARIABLES:\n\t-GEMINI API KEY: $gemini_api\n\t-OPENAI API KEY: $openai_api${RESET}\n");  
     type_to_continue();
 } 
 
 # set API keys
 sub set_keys {
-    print "\n--- MANAGE API KEYS ---\n";
-    print "1) Set Gemini API Key (Google)\n";
-    print "2) Set OpenAI API Key\n\n";
-    print "0) Exit\n";
-    print "Choose option: ";
+    print "\n${BLUE}${BOLD}--- MANAGE API KEYS ---${RESET}\n";
+    print "${GREEN}1) Set Gemini API Key (Google)\n";
+    print "2) Set OpenAI API Key\n\n${RESET}";
+    print "${YELLOW}0) Exit\n${RESET}";
+    print "${MAGENTA}Choose option: ${RESET}";
 
     my $option = <STDIN>;
     chomp($option);
@@ -594,26 +604,26 @@ sub set_keys {
     my $config = read_config();
 
     if ($option eq "1") {
-        print "Enter key for Gemini: ";
+        print "${YELLOW}Enter key for Gemini: ${RESET}";
         my $key = <STDIN>;
         chomp($key);
         
         if ($key ne "") {
             $config->{"gemini-api-key"} = $key;
-            print "Gemini key has been saved.\n";
+            print "${GREEN}Gemini key has been saved.${RESET}\n";
             type_to_continue();
         } else {
             return;
         }
 
     } elsif ($option eq "2") {
-        print "Enter key for OpenAI: ";
+        print "${YELLOW}Enter key for OpenAI: ${RESET}";
         my $key = <STDIN>;
         chomp($key);
 
         if ($key ne "") {
             $config->{"openai-api-key"} = $key;
-            print "OpenAI key has been saved.\n";
+            print "${GREEN}OpenAI key has been saved.${RESET}\n";
             type_to_continue();
         } else {
             return;
@@ -628,21 +638,21 @@ sub set_keys {
 
 # set model
 sub set_model {
-    print "=== AVAILABLE MODELS ===\n";
+    print "${BLUE}${BOLD}=== AVAILABLE MODELS ===${RESET}\n";
     
     foreach my $id (sort { $a <=> $b } keys %models_db) {
         my $m = $models_db{$id};
-        printf("%d) %-25s [%s]\n", $id, $m->{name}, uc($m->{provider}));
+        printf("${YELLOW}%d) %-25s [%s]${RESET}\n", $id, $m->{name}, uc($m->{provider}));
     }
     
-    print "\nChoose model number: ";
+    print "\n${MAGENTA}Choose model number: ${RESET}";
     my $choice = <STDIN>;
     chomp($choice);
 
     if (exists $models_db{$choice}) {
         my $selected = $models_db{$choice};
         
-        print "Selected: $selected->{name} ($selected->{provider})\n";
+        print "${GREEN}Selected: $selected->{name} ($selected->{provider})${RESET}\n";
         type_to_continue();
         if ($selected->{provider} eq "google") {
             my $type="google";
@@ -657,7 +667,7 @@ sub set_model {
         save_config($config);
 
     } else {
-        print "Invalid choice!\n";
+        print "${RED}Invalid choice!${RESET}\n";
         type_to_continue();
     }
 }
@@ -668,19 +678,19 @@ sub set_context_window_length {
     
     my $current_val = $config->{"context-window"};
 
-    print "\n--- SETTING CONTEXT WINDOW LENGTH ---";
+    print "\n${BLUE}${BOLD}--- SETTING CONTEXT WINDOW LENGTH ---${RESET}";
     if($current_val == -1){
-        print "\nCurrent length: no limit";
+        print "\n${CYAN}Current length: no limit${RESET}";
     }else{
-        print "\nCurrent length: $current_val characters";
+        print "\n${CYAN}Current length: $current_val characters${RESET}";
     }
-    print "\nEnter new length (digits only): ";
+    print "\n${YELLOW}Enter new length (digits only): ${RESET}";
 
     my $input = <STDIN>;
     chomp($input);
 
     if ($input eq "") {
-        print "Cancelled. Kept old value.\n";
+        print "${YELLOW}Cancelled. Kept old value.${RESET}\n";
         type_to_continue();
         return;
     }
@@ -688,10 +698,10 @@ sub set_context_window_length {
     if ($input =~ /^\d+$/ || $input == -1) {
         $config->{"context-window"} = int($input);
         save_config($config);
-        print "Success! New window length is: $input characters.\n";
+        print "${GREEN}Success! New window length is: $input characters.${RESET}\n";
         type_to_continue();
     } else {
-        print "Error: Entered value '$input' is not a valid number!\n";
+        print "${RED}Error: Entered value '$input' is not a valid number!${RESET}\n";
         type_to_continue();
     }
 }
@@ -699,7 +709,7 @@ sub set_context_window_length {
 # show current model
 sub curr_model{
     my $config = read_config();
-    print("====== [CURRENT MODEL] ======\nCurrent model is $config->{model}, from $config->{type}.\n");
+    print("${BLUE}${BOLD}====== [CURRENT MODEL] ======\n${RESET}${GREEN}Current model is $config->{model}, from $config->{type}.${RESET}\n");
     type_to_continue();
     show_option_menu();
 }
@@ -723,7 +733,7 @@ sub settings_menu{
         if (exists $actions_menu{$option}) {
             $actions_menu{$option}->();
         } else {
-            print "Invalid option. Try again.\n";
+            print "${RED}Invalid option. Try again.${RESET}\n";
             type_to_continue();
         }
 
@@ -790,7 +800,7 @@ HELP
 # ============================================
 # exit program
 sub exit_program {
-    print "Goodbye!\n";
+    print "${GREEN}Goodbye!${RESET}\n";
     exit 0;
 }
 
@@ -826,7 +836,7 @@ while (1) {
     if (exists $actions{$choice}) {
         $actions{$choice}->();
     } else {
-        print "Invalid option. Try again.\n";
+        print "${RED}Invalid option. Try again.${RESET}\n";
         type_to_continue();
     }
 }
