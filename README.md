@@ -1,4 +1,4 @@
-## Installation
+# Installation
 Important info about installation, there is makefile prepared, you have to have sudo in order to install a script(it is being install in `/usr/local/bin/`). There is all posible combination of installation of scripts:
 - `make install`: Install all tools
 - `make uninstall`: Remove all tools
@@ -8,11 +8,17 @@ Important info about installation, there is makefile prepared, you have to have 
 - `make uninstall-gitignore`: Remove gitignore tool
 - `make help`: shows a above list of commands with explonation
 
-# UsefullStuff
+# Requirements
+- `createigit`:
+   - python 3
+- `aicode`:
+   - perl 5
+
+# Descriptions
 It is a set of scripts and other stuff that i mostly use to automate tasks that can be automated, below there a list of those scirpt with the description.
 
 
-## `Git ignore file creator` (`createigit`)
+## Git ignore file creator (`createigit`)
 Script for creating and managing the .gitignore files, with sections that you can add, remove, etc. You are able to control the state of the file, create new .gitignore files that can be customized to your needs
 
 There is a short manual of how to use a specific command:
@@ -55,7 +61,7 @@ The sections that are currently supported are:
 
 The important thing is, if .gitignore already exist, you cannot execute commands such as: --lang, --sys, --editor, --exclude_lang, --exclude_sys, --exclude_editor, they only works on freshly created filed. If you want to modify the existing file use: --add_lang, --add_sys, --add_editor, --del_lang, --del_sys, --del_editor
 
-## `GenAI code assistant` (`aicode`)
+## GenAI code assistant (`aicode`)
 This is a command-line tool that integrates with Google's Gemini AI models to assist with coding tasks. It allows users to ask questions, debug code, refactor code, add comments, and modify code using AI-generated responses. The tool supports batching large files based on a configurable context window.
 
 ### Main Features
@@ -93,3 +99,6 @@ The **context window** limits file reading to batches of the specified character
    "context-window" : -1
 }
 ```
+
+## Battle royale (`battle`)
+If you want to just observe and watch how the classes fight, here is some nice time waster for you, while you waiting for some shit to get done :DD
