@@ -100,5 +100,40 @@ The **context window** limits file reading to batches of the specified character
 }
 ```
 
-## Battle royale (`battle`)
-If you want to just observe and watch how the classes fight, here is some nice time waster for you, while you waiting for some shit to get done :DD
+## Battle Royale Simulator (`battle`)
+This is a command-line battle royale simulator where different unit classes fight on a grid-based battlefield. Watch as archers, knights, cavalry, and mages battle until only one remains. It's a fun time-waster to observe automated combat simulations.
+
+### Usage
+
+```
+battle -x <width> -y <height> [options]
+```
+
+### Required Arguments
+
+- `-x WIDTH`: Set the width of the battlefield.
+- `-y HEIGHT`: Set the height of the battlefield.
+
+### Optional Arguments
+
+- `-p PLAYERS`: Total number of players in the simulation.
+- `-a ARCHERS`: Specify number of Archer units (A).
+- `-k KNIGHTS`: Specify number of Knight units (K).
+- `-c CAVALRY`: Specify number of Cavalry units (C).
+- `-m MAGES`: Specify number of Mage units (M).
+
+### Automatic Distribution Logic
+
+- If all classes (-a, -k, -c, -m) are provided, the -p value is ignored and automatically recalculated as the sum of all classes.
+- If the sum of specified classes is greater than -p, the player count will be increased to match that sum.
+- If -p is greater than the sum of specified classes, the remaining slots will be automatically filled by distributing them among the classes that were not explicitly set (left at 0).
+- If only -p is given, players are distributed equally among all classes.
+
+### Unit Statistics
+
+| Class    | HP  | Damage | Range | Move |
+|----------|-----|--------|-------|------|
+| Archers  | 100 | 25     | 4     | 1    |
+| Knights  | 200 | 40     | 1     | 1    |
+| Cavalry  | 150 | 40     | 1     | 2    |
+| Mages    | 100 | 50     | 2     | 1    |
