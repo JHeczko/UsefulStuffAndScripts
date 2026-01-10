@@ -27,9 +27,10 @@ knights_moverange=1
 cavalry_moverange=2
 mages_moverange=1
 
-RED="\033[31m"
-BLUE="\033[34m"
-RESET="\033[0m"
+RED=$'\033[31m'
+BLUE=$'\033[34m'
+RESET=$'\033[0m'
+
 
 
 # Arrays to store player data
@@ -138,7 +139,7 @@ print_map() {
             for ((i=0; i<${#player_x[@]}; i++)); do
                 if [[ ${player_alive[$i]} -eq 1 && ${player_x[$i]} -eq $x && ${player_y[$i]} -eq $y ]]; then
                     if [[ ${player_hit[$i]} -eq 1 ]]; then
-                        echo -n "${RED}${player_class[$i]}${RESET} "
+                        printf "%b " "${RED}${player_class[$i]}${RESET}"
                     elif [[ ${player_moved[$i]} -eq 1 ]]; then
                         echo -n "${BLUE}${player_class[$i]}${RESET} "
                     else
