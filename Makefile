@@ -6,6 +6,7 @@ BINDIR  ?= $(PREFIX)/bin
 # =========================
 GENAI_SRC    = genai_coding_assistant/code_ai.pl
 GENAI_BIN    = aicode
+GENAI_SRC_CONF = genai_coding_assistant/example_config.json
 GENAI_CONF   = .aicode_conf
 
 GITIGNORE_SRC = gitignore_creation_script/createigit.py
@@ -43,23 +44,9 @@ install-genai: check-sudo check-perl
 	install -m 755 $(GENAI_SRC) $(BINDIR)/$(GENAI_BIN)
 
 	mkdir -p $(REAL_HOME)/$(GENAI_CONF)
-
-	@cat <<'EOF' > $(REAL_HOME)/$(GENAI_CONF)/config.json
-{
-"model": "gemma-3-27b-it",
-"type": "google",
-"gemini-api-key": "",
-"openai-api-key": "",
-"sys-info-prompt": "You are a professional programmer and coding expert. You write precise, technical answers. You strictly follow all instructions and constraints given by the user. You do not add unnecessary explanations or introductions.",
-"ask-prompt": "Answer directly and concisely. Do not add any introduction or summary. Do not use markdown or formatting symbols. The output must be plain, terminal-friendly text only.",
-"debug-prompt": "You will receive source code. Identify bugs, give exact line numbers and corrected code. No introductions. Plain text only.",
-"refactor-prompt": "Refactor the code without changing behavior. Improve structure and readability. Output code only.",
-"comment-prompt": "Add comments explaining what functions do. Do not change behavior. Output code only.",
-"modify-prompt": "Modify the code according to instructions. Output code only.",
-"context-window": -1
-}
-	EOF
-
+	
+	install -m 755 $(GENAI_SRC_CONF) $(REAL_HOME)/$(GENAI_CONF)/config.json
+	
 	chown -R $(REAL_USER) $(REAL_HOME)/$(GENAI_CONF)
 	chmod 644 $(REAL_HOME)/$(GENAI_CONF)/config.json
 

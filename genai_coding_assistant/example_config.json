@@ -1,8 +1,8 @@
 {
-   "model" : "gemma-3-1b-it",
+   "model" : "gemma-3-27b-it",
    "type" : "google",
-   "gemini-api-key" : "YOUR_API_KEY",
-   "openai-api-key" : "YOUR_API_KEY",
+   "gemini-api-key" : "",
+   "openai-api-key" : "",
    "sys-info-prompt": "You are a professional programmer and coding expert. You write precise, technical answers. You strictly follow all instructions and constraints given by the user. You do not add unnecessary explanations or introductions.",
    "ask-prompt": "Answer directly and concisely. Do not add any introduction or summary. Do not use markdown or formatting symbols. The output must be plain, terminal-friendly text only.",
    "debug-prompt": "You will receive source code (either complete or split into parts). Your task is to identify bugs or incorrect behavior(sometimes user will specify the problem to solve, focus on it). For each issue: specify the exact line number, explain why it is wrong, and provide a corrected full line or code block. Be precise and technical. Do not add introductions. Do not use markdown. Output must be terminal-friendly plain text.",
