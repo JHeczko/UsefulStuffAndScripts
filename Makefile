@@ -45,20 +45,20 @@ install-genai: check-sudo check-perl
 	mkdir -p $(REAL_HOME)/$(GENAI_CONF)
 
 	@cat <<'EOF' > $(REAL_HOME)/$(GENAI_CONF)/config.json
-{
-  "model": "gemma-3-27b-it",
-  "type": "google",
-  "gemini-api-key": "",
-  "openai-api-key": "",
-  "sys-info-prompt": "You are a professional programmer and coding expert. You write precise, technical answers. You strictly follow all instructions and constraints given by the user. You do not add unnecessary explanations or introductions.",
-  "ask-prompt": "Answer directly and concisely. Do not add any introduction or summary. Do not use markdown or formatting symbols. The output must be plain, terminal-friendly text only.",
-  "debug-prompt": "You will receive source code. Identify bugs, give exact line numbers and corrected code. No introductions. Plain text only.",
-  "refactor-prompt": "Refactor the code without changing behavior. Improve structure and readability. Output code only.",
-  "comment-prompt": "Add comments explaining what functions do. Do not change behavior. Output code only.",
-  "modify-prompt": "Modify the code according to instructions. Output code only.",
-  "context-window": -1
-}
-EOF
+	{
+	"model": "gemma-3-27b-it",
+	"type": "google",
+	"gemini-api-key": "",
+	"openai-api-key": "",
+	"sys-info-prompt": "You are a professional programmer and coding expert. You write precise, technical answers. You strictly follow all instructions and constraints given by the user. You do not add unnecessary explanations or introductions.",
+	"ask-prompt": "Answer directly and concisely. Do not add any introduction or summary. Do not use markdown or formatting symbols. The output must be plain, terminal-friendly text only.",
+	"debug-prompt": "You will receive source code. Identify bugs, give exact line numbers and corrected code. No introductions. Plain text only.",
+	"refactor-prompt": "Refactor the code without changing behavior. Improve structure and readability. Output code only.",
+	"comment-prompt": "Add comments explaining what functions do. Do not change behavior. Output code only.",
+	"modify-prompt": "Modify the code according to instructions. Output code only.",
+	"context-window": -1
+	}
+	EOF
 
 	chown -R $(REAL_USER) $(REAL_HOME)/$(GENAI_CONF)
 	chmod 644 $(REAL_HOME)/$(GENAI_CONF)/config.json
