@@ -13,6 +13,8 @@ Important info about installation, there is makefile prepared, you have to have 
    - python 3
 - `aicode`:
    - perl 5
+- `battle`:
+   - bash
 
 # Descriptions
 It is a set of scripts and other stuff that i mostly use to automate tasks that can be automated, below there a list of those scirpt with the description.
