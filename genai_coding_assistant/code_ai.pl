@@ -60,8 +60,8 @@ my $COLOR_CANCEL = $YELLOW;
 sub read_config {
     my $config_path = "$ENV{HOME}/.aicode_conf/config.json";
 
-    open my $fh, '<:encoding(UTF-8)', $config_path
-        or die "Couldn't open config file: $!";
+    open my $fh, '<', $config_path
+        or die "Couldn't open config file '$config_path': $!";
 
     local $/;
     my $json_text = <$fh>;
@@ -69,12 +69,10 @@ sub read_config {
 
     my $data = decode_json($json_text);
 
-    tie my %ordered, 'Tie::IxHash';
-    for my $key (keys %$data) {
-        $ordered{$key} = $data->{$key};
-    }
+    die "Config is not a JSON object"
+        unless ref($data) eq 'HASH';
 
-    return \%ordered;
+    return $data;
 }
 
 # save config file
