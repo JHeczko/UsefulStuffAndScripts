@@ -4,7 +4,6 @@ use warnings;
 use strict;
 use HTTP::Tiny;
 use JSON qw(encode_json decode_json);
-use Tie::IxHash;
 use open qw(:std :utf8);
 use Cwd qw(getcwd abs_path);
 use File::Basename qw(dirname basename);
@@ -83,7 +82,7 @@ sub save_config {
     my $json = JSON->new->utf8->pretty;
     my $json_text = $json->encode($config_data);
 
-    open my $fh, '>:encoding(UTF-8)', $config_path
+    open my $fh, '>', $config_path
         or die "Can't write config file: $!";
     print $fh $json_text;
     close $fh;
