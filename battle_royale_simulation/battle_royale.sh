@@ -11,14 +11,14 @@ speed=1.5
 # HP settings
 archers_health=100
 knights_health=200
-cavalry_health=150
+cavalry_health=175
 mages_health=100
 
 # Damage settings
-archers_damage=25
+archers_damage=30
 knights_damage=40
-cavalry_damage=40
-mages_damage=50
+cavalry_damage=50
+mages_damage=40
 
 # Range settings
 archers_range=4
@@ -29,7 +29,7 @@ mages_range=2
 # Move range settings
 archers_moverange=1
 knights_moverange=1
-cavalry_moverange=2
+cavalry_moverange=1
 mages_moverange=1
 
 # Colors
@@ -178,7 +178,11 @@ print_map() {
             
             if [[ $found -eq 1 ]]; then
                 # Tylko numer, bez koloru na mapie
-                printf "%02d " "$pid"
+                if [[ ${player_hit[$pid]} -eq 1 ]];then
+                    printf "${RED}%02d ${RESET}" "$pid"
+                else
+                    printf "%02d " "$pid"
+                fi
             else
                 echo -n ".  "
             fi
@@ -190,34 +194,44 @@ print_map() {
 
 print_stats() {
     echo "══════════════════════════════════════════════════════════════════════"
+    local col_width=20
     local cols=4
     local count=0
-    
+    # Szerokość pojedynczej kolumny - dopasuj, jeśli klasy są bardzo długie
+    local col_width=18 
+
     for ((i=0; i<${#player_alive[@]}; i++)); do
         local p_class=${player_class[$i]}
-        
+        local cell_content=""
+        local color=""
+
         if [[ ${player_alive[$i]} -eq 1 ]]; then
             local max_hp=$(get_max_hp "$p_class")
             local curr_hp=${player_hp[$i]}
             
-            # LOGIKA KOLORÓW STATYSTYK
+            # Formatuje tekst: "01: 100/100 (Wojownik)"
+            cell_content=$(printf "%02d: %3d/%-3d (%s)" "$i" "$curr_hp" "$max_hp" "$p_class")
+            
             if [[ ${player_hit[$i]} -eq 1 ]]; then
-                # Dostał hita = CZERWONY
-                printf "%b%02d: %3d/%-3d (%s)%b  " "$RED" "$i" "$curr_hp" "$max_hp" "$p_class" "$RESET"
+                color="$RED"
             else
-                # Żyje i bezpieczny = ZIELONY
-                printf "%b%02d: %3d/%-3d (%s)%b  " "$GREEN" "$i" "$curr_hp" "$max_hp" "$p_class" "$RESET"
+                color="$GREEN"
             fi
         else
-            # Martwy = SZARY
-            printf "%b%02d: DEAD          %b  " "$GREY" "$i" "$RESET"
+            # Formatuje tekst dla martwego: "01: DEAD"
+            cell_content=$(printf "%02d: DEAD" "$i")
+            color="$GREY"
         fi
+
+        # KLUCZ: Wypisujemy kolor, potem sformatowany tekst o stałej szerokości, potem reset
+        # %-*s oznacza: wyrównaj do lewej na szerokość [col_width] znaków
+        printf "%b%-*s%b  " "$color" "$col_width" "$cell_content" "$RESET"
         
         ((count++))
         if [[ $((count % cols)) -eq 0 ]]; then echo ""; fi
     done
     
-    if [[ $((count % cols)) -ne 0 ]]; then echo ""; fi
+    [[ $((count % cols)) -ne 0 ]] && echo ""
     echo "══════════════════════════════════════════════════════════════════════"
 }
 
@@ -286,11 +300,12 @@ attack() {
 
 move_player() {
     local idx=$1
-    local range=$(get_stat "${player_class[$idx]}" moverange)
+    local range_possible=$(get_stat "${player_class[$idx]}" moverange)
     local ox=${player_x[$idx]}
     local oy=${player_y[$idx]}
     local dirs=(0 1 2 3)
-    
+
+
     # randommizig the array
     for ((k=3; k>0; k--)); do
         local j=$((RANDOM % (k+1))) 
@@ -299,35 +314,37 @@ move_player() {
         dirs[j]=$t
     done
 
-    for d in "${dirs[@]}"; do
-        local nx=$ox 
-        local ny=$oy
-        case $d in
-            0) ny=$((ny - range));; 
-            1) ny=$((ny + range));;
-            2) nx=$((nx - range));; 
-            3) nx=$((nx + range));;
-        esac
-        
-        [[ $nx -lt 0 || $nx -ge $width || $ny -lt 0 || $ny -ge $height ]] && continue
-        
-        local occ=0
-        local k
+    for ((range=1; range<=range_possible; range++)); do
+        for d in "${dirs[@]}"; do
+            local nx=$ox 
+            local ny=$oy
+            case $d in
+                0) ny=$((ny - range));; 
+                1) ny=$((ny + range));;
+                2) nx=$((nx - range));; 
+                3) nx=$((nx + range));;
+            esac
+            
+            [[ $nx -lt 0 || $nx -ge $width || $ny -lt 0 || $ny -ge $height ]] && continue
+            
+            local occ=0
+            local k
 
-        # checking collision
-        for ((k=0; k<${#player_x[@]}; k++)); do
-            if [[ ${player_alive[$k]} -eq 1 && $k -ne $idx && ${player_x[$k]} -eq $nx && ${player_y[$k]} -eq $ny ]];then
-                occ=1 
-                break
-            fi
+            # checking collision
+            for ((k=0; k<${#player_x[@]}; k++)); do
+                if [[ ${player_alive[$k]} -eq 1 && $k -ne $idx && ${player_x[$k]} -eq $nx && ${player_y[$k]} -eq $ny ]];then
+                    occ=1 
+                    break
+                fi
+            done
+            
+            [[ $occ -eq 1 ]] && continue
+
+            player_x[$idx]=$nx 
+            player_y[$idx]=$ny
+            player_moved[$idx]=1
+            return
         done
-        
-        [[ $occ -eq 1 ]] && continue
-
-        player_x[$idx]=$nx 
-        player_y[$idx]=$ny
-        player_moved[$idx]=1
-        return
     done
 }
 

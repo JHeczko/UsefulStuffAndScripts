@@ -134,7 +134,7 @@ battle -x <width> -y <height> [options]
 
 | Class    | HP  | Damage | Range | Move |
 |----------|-----|--------|-------|------|
-| Archers  | 100 | 25     | 4     | 1    |
+| Archers  | 100 | 30     | 4     | 1    |
 | Knights  | 200 | 40     | 1     | 1    |
-| Cavalry  | 150 | 40     | 1     | 2    |
-| Mages    | 100 | 50     | 2     | 1    |
+| Cavalry  | 175 | 50     | 1     | 1    |
+| Mages    | 100 | 40     | 2     | 1    |
