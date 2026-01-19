@@ -6,6 +6,7 @@ archers=0
 knights=0
 cavalry=0
 mages=0
+speed=1.5
 
 # HP settings
 archers_health=100
@@ -222,7 +223,8 @@ print_stats() {
 
 find_target() {
     local attacker_idx=$1
-    local ax=${player_x[$attacker_idx]}; local ay=${player_y[$attacker_idx]}
+    local ax=${player_x[$attacker_idx]}
+    local ay=${player_y[$attacker_idx]}
     local range=$(get_stat ${player_class[$attacker_idx]} range)
     
     # UP
@@ -285,7 +287,8 @@ attack() {
 move_player() {
     local idx=$1
     local range=$(get_stat "${player_class[$idx]}" moverange)
-    local ox=${player_x[$idx]}; local oy=${player_y[$idx]}
+    local ox=${player_x[$idx]}
+    local oy=${player_y[$idx]}
     local dirs=(0 1 2 3)
     
     # randommizig the array
@@ -310,6 +313,8 @@ move_player() {
         
         local occ=0
         local k
+
+        # checking collision
         for ((k=0; k<${#player_x[@]}; k++)); do
             if [[ ${player_alive[$k]} -eq 1 && $k -ne $idx && ${player_x[$k]} -eq $nx && ${player_y[$k]} -eq $ny ]];then
                 occ=1 
@@ -334,6 +339,9 @@ simulation() {
     echo " Round: 0 (START) | Alive: $players"
     print_stats
     type_to_continue
+
+    tput clear
+
 
     while true; do
         local alive=0
@@ -362,11 +370,11 @@ simulation() {
         done
         
         print_map
-        echo " Round: $round | Alive: $alive"
+        printf " Round: %d | Alive: %02d\n" "$round" "$alive"
         print_stats
         
         ((round++))
-        sleep 1.5
+        sleep $speed
 
         local i
         for ((i=0; i<${#player_alive[@]}; i++)); do
@@ -399,7 +407,8 @@ while getopts "x:y:p:a:k:c:m:" opt; do
 done
 
 if [[ $players -lt 0 || $height -le 0 || $width -le 0 ]]; then 
-    echo "Error params"
+    echo "Error params. "
+    print_usage
     exit 1
 fi
 
@@ -464,6 +473,7 @@ echo "Knights : $knights"
 echo "Cavalry : $cavalry"
 echo "Mages   : $mages"
 type_to_continue
+
 
 cleanup() {
     tput cnorm
