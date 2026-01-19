@@ -94,7 +94,7 @@ sub browse_files {
     
     clear_screen();
     # Otwieramy katalog
-    opendir(my $dh, $current_dir) || die "Nie można otworzyc katalogu $current_dir: $!";
+    opendir(my $dh, $current_dir) || die "Can't open dir $current_dir: $!";
     
     # Sortujemy: najpierw katalogi, potem pliki. Pomijamy '.' (bieżący)
     my @items = sort { 
@@ -146,6 +146,7 @@ sub browse_files {
         }
     } else {
         print "${COLOR_ERROR}Invalid choice, try again.${RESET}\n";
+        type_to_continue();
         return browse_files($current_dir);
     }
 }
