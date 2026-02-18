@@ -1,4 +1,11 @@
 # Installation
+
+```bash
+git clone git@github.com:JHeczko/UsefulStuffAndScripts.git
+cd UsefulStuffAndScripts
+make [command_see_below]
+```
+
 Important info about installation, there is makefile prepared, you have to have sudo in order to install a script(it is being install in `/usr/local/bin/` but you can set `PREFIX` to different installation path for ex. `make install PREFIX=$HOME/.local`). There is all posible combination of installation of scripts:
 - `make install`: Install all tools
 - `make uninstall`: Remove all tools
