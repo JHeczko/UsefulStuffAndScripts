@@ -216,7 +216,8 @@ sub show_menu {
     print "2) Debug code\n";
     print "3) Refactor code\n";
     print "4) Comment code\n";
-    print "5) Modify code\n${RESET}";
+    print "5) Modify code\n";
+    print "6) Write code\n${RESET}";
 
     print "\n";
     print "${COLOR_CANCEL}8) Help\n";
@@ -328,7 +329,7 @@ sub gemini_prompt{
 }
 
 # ============================================
-# HANDLERS
+# MAIN HANDLERS
 # ============================================
 # handle ask question
 sub ask_question {
@@ -585,6 +586,60 @@ sub modify_file{
     type_to_continue();
 }
 
+sub write_code{
+    print "\n${COLOR_TITLE}=== WRITE CODE MODE ===${RESET}\n";
+    
+    type_to_continue();
+
+    my $config = read_config();
+    my $prompt = $config->{"write-prompt"};
+    my $model = $config->{"model"};
+
+    print "${COLOR_PROMPT}Give new file name (default: answear.ai): ${RESET}";
+    my $new_input = <STDIN>;
+    chomp $new_input;
+
+    my $new_file_path;
+    my $dir = "./";
+
+    if ($new_input eq "") {
+        # ENTER -> ten sam katalog
+        $new_file_path = File::Spec->catfile(
+            $dir,
+            "answear.ai"
+        );
+    }  else {
+        $new_file_path = File::Spec->catfile(
+            $dir,
+            $new_input
+        );
+    }
+
+    # getting user instructions
+    print "${COLOR_PROMPT}What to write?: ${RESET}";
+    my $user_instructions = <STDIN>;
+    chomp($user_instructions);
+
+
+    open my $OUT, '>:encoding(UTF-8)', $new_file_path or die "Can't create output file $new_file_path: $!";
+
+    $prompt = $prompt . "\n[INSTRUCTIONS]: $user_instructions";
+
+    my $response = gemini_prompt($prompt, $model, 0);
+
+    unless (defined $response && $response ne "") {
+        warn "${COLOR_ERROR}[WARNING] Empty response...\n";
+    }
+
+    print $OUT "\n";
+    print $OUT $response;
+    print $OUT "\n";
+
+    
+    print("${COLOR_OPTION}Done, code saved to $new_file_path${RESET}");
+    type_to_continue();
+}
+
 # ============================================
 # SETTINGS HANDLERS
 # ============================================
@@ -606,7 +661,7 @@ sub show_keys {
     } else{
         $openai_api = $config->{'openai-api-key'};
     }
-    print("${COLOR_INFO}Please remember to store them as ENVIRONMENT VARIABLES:\n\t-GEMINI API KEY: $gemini_api\n\t-OPENAI API KEY: $openai_api${RESET}\n");  
+    print("${COLOR_INFO}Please remember to store them as ENVIRONMENT VARIABLES:\n -GEMINI API KEY: $gemini_api\n -OPENAI API KEY: $openai_api${RESET}\n");  
     type_to_continue();
 } 
 
@@ -614,7 +669,7 @@ sub show_keys {
 sub set_keys {
     clear_screen();
     print "\n${COLOR_TITLE}--- MANAGE API KEYS ---${RESET}\n";
-    print "${COLOR_OPTION}1) Set Gemini API Key (Google)\n";
+    print "${COLOR_OPTION}1) Set Gemini API Key\n";
     print "2) Set OpenAI API Key\n\n${RESET}";
     print "${COLOR_CANCEL}0) Exit\n${RESET}";
     print "${COLOR_PROMPT}Choose option: ${RESET}";
@@ -791,7 +846,7 @@ sub show_help{
 GenAI Code Assistant Help
 =========================
 
-This is a command-line tool that integrates with Google's Gemini AI models to assist with coding tasks. It allows users to ask questions, debug code, refactor code, add comments, and modify code using AI-generated responses. The tool supports batching large files based on a configurable context window.
+This is a command-line tool that integrates with Google's Gemini AI models to assist with coding tasks. It allows users to ask questions, debug code, refactor code, add comments, and modify code using AI-generated responses. The tool supports batching large files based on a configurable context window. Sometimes there will be errors with functions such as "Debug Code" or "Refactor Code", cuz context windows exist and also API is sometimes overloaded, it can give error 599, unfortunettly no fix yet, sometimes files are just to big, and batch option is not very good at code debugging...
 
 Main Features
 -------------
@@ -800,6 +855,7 @@ Main Features
 - Refactor Code: Refactor a selected file to improve structure and readability while preserving functionality, saving to a new file.
 - Comment Code: Add comments to a selected file explaining functions and complex syntax, saving to a new file.
 - Modify Code: Modify a selected file based on user instructions, saving to a new file.
+- Write code: if you want to write some code fast into a file, here is a function.
 
 Settings Menu
 -------------
@@ -818,16 +874,17 @@ The context window limits file reading to batches of the specified character len
 Example Config File
 -------------------
 {
-   "model" : "gemma-3-1b-it",
+   "model" : "gemma-3-27b-it",
    "type" : "google",
-   "gemini-api-key" : "YOUR_API_KEY",
-   "openai-api-key" : "YOUR_API_KEY",
+   "gemini-api-key" : "",
+   "openai-api-key" : "",
    "sys-info-prompt": "You are a professional programmer and coding expert. You write precise, technical answers. You strictly follow all instructions and constraints given by the user. You do not add unnecessary explanations or introductions.",
    "ask-prompt": "Answer directly and concisely. Do not add any introduction or summary. Do not use markdown or formatting symbols. The output must be plain, terminal-friendly text only.",
    "debug-prompt": "You will receive source code (either complete or split into parts). Your task is to identify bugs or incorrect behavior(sometimes user will specify the problem to solve, focus on it). For each issue: specify the exact line number, explain why it is wrong, and provide a corrected full line or code block. Be precise and technical. Do not add introductions. Do not use markdown. Output must be terminal-friendly plain text.",
    "refactor-prompt": "You will receive source code (either complete or split into parts). Refactor the code while preserving its exact behavior. Improve structure, readability, and eliminate code smells where possible. Do not change functionality. Do not add comments or explanations. Do not add any introduction. Do not use markdown or formatting symbols. The output must be code only, ready to paste directly into a file.",
    "comment-prompt":"You will receive source code (either complete or split into parts). Add comments inside a code, explainign what every function does. If there is complicated syntax, explain it too. Do not change the behavior of the code(do not refactor it, only add comments). Do not add any introduction. Do not use markdown or formatting symbols. The output must be code only, ready to paste directly into a file.",
    "modify-prompt": "You will receive source code (either complete or split into parts). Please modify the given code, following given instruction below. Do not add any introduction. Do not use markdown or formatting symbols. The output must be code only, ready to paste directly into a file.",
+   "write-prompt": "You will receive an instruction specifying the code that needs to be written. Write the code from scratch according to the user's request. The output must contain only the final code, ready to copy and paste directly into a file. Do not include explanations, comments outside the code, markdown formatting, or any additional symbols. Only return the complete code.",
    "context-window" : -1
 }
 
@@ -860,6 +917,7 @@ my %actions = (
     3 => \&refactor_file,
     4 => \&comment_file,
     5 => \&modify_file,
+    6 => \&write_code,
     8 => \&show_help,
     9 => \&settings_menu,
     0 => \&exit_program,

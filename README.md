@@ -70,7 +70,7 @@ The sections that are currently supported are:
 The important thing is, if .gitignore already exist, you cannot execute commands such as: --lang, --sys, --editor, --exclude_lang, --exclude_sys, --exclude_editor, they only works on freshly created filed. If you want to modify the existing file use: --add_lang, --add_sys, --add_editor, --del_lang, --del_sys, --del_editor
 
 ## GenAI code assistant (`aicode`)
-This is a command-line tool that integrates with Google's Gemini AI models to assist with coding tasks. It allows users to ask questions, debug code, refactor code, add comments, and modify code using AI-generated responses. The tool supports batching large files based on a configurable context window.
+This is a command-line tool that integrates with Google's Gemini AI models to assist with coding tasks. It allows users to ask questions, debug code, refactor code, add comments, and modify code using AI-generated responses. The tool supports batching large files based on a configurable context window. Sometimes there will be errors with functions such as "Debug Code" or "Refactor Code", cuz context windows exist and also API is sometimes overloaded, it can give error 599, unfortunettly no fix yet, sometimes files are just to big, and batch option is not very good at code debugging...
 
 ### Main Features
 - **Ask a Question**: Prompt Gemini with a custom question and receive a direct response.
@@ -78,6 +78,8 @@ This is a command-line tool that integrates with Google's Gemini AI models to as
 - **Refactor Code**: Refactor a selected file to improve structure and readability while preserving functionality, saving to a new file.
 - **Comment Code**: Add comments to a selected file explaining functions and complex syntax, saving to a new file.
 - **Modify Code**: Modify a selected file based on user instructions, saving to a new file.
+- **Write code**: if you want to write some code fast into a file, here is a function.
+
 
 ### Settings Menu
 - **Check API Keys**: Display current API keys (prioritizing environment variables over config).
@@ -94,17 +96,21 @@ The **context window** limits file reading to batches of the specified character
 ### Example Config File
 ```json
 {
-   "model" : "gemma-3-1b-it",
+   {
+   "model" : "gemma-3-27b-it",
    "type" : "google",
-   "gemini-api-key" : "YOUR_API_KEY",
-   "openai-api-key" : "YOUR_API_KEY",
+   "gemini-api-key" : "",
+   "openai-api-key" : "",
    "sys-info-prompt": "You are a professional programmer and coding expert. You write precise, technical answers. You strictly follow all instructions and constraints given by the user. You do not add unnecessary explanations or introductions.",
    "ask-prompt": "Answer directly and concisely. Do not add any introduction or summary. Do not use markdown or formatting symbols. The output must be plain, terminal-friendly text only.",
    "debug-prompt": "You will receive source code (either complete or split into parts). Your task is to identify bugs or incorrect behavior(sometimes user will specify the problem to solve, focus on it). For each issue: specify the exact line number, explain why it is wrong, and provide a corrected full line or code block. Be precise and technical. Do not add introductions. Do not use markdown. Output must be terminal-friendly plain text.",
    "refactor-prompt": "You will receive source code (either complete or split into parts). Refactor the code while preserving its exact behavior. Improve structure, readability, and eliminate code smells where possible. Do not change functionality. Do not add comments or explanations. Do not add any introduction. Do not use markdown or formatting symbols. The output must be code only, ready to paste directly into a file.",
    "comment-prompt":"You will receive source code (either complete or split into parts). Add comments inside a code, explainign what every function does. If there is complicated syntax, explain it too. Do not change the behavior of the code(do not refactor it, only add comments). Do not add any introduction. Do not use markdown or formatting symbols. The output must be code only, ready to paste directly into a file.",
    "modify-prompt": "You will receive source code (either complete or split into parts). Please modify the given code, following given instruction below. Do not add any introduction. Do not use markdown or formatting symbols. The output must be code only, ready to paste directly into a file.",
+   "write-prompt": "You will receive an instruction specifying the code that needs to be written. Write the code from scratch according to the user's request. The output must contain only the final code, ready to copy and paste directly into a file. Do not include explanations, comments outside the code, markdown formatting, or any additional symbols. Only return the complete code.",
    "context-window" : -1
+}
+
 }
 ```
 
